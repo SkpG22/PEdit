@@ -1,0 +1,2358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>PEdit — Professional Image & PDF Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root {
+  --bg: #080810;
+  --bg2: #0f0f1a;
+  --panel: #13131f;
+  --panel2: #1a1a2e;
+  --border: #252545;
+  --border2: #2e2e52;
+  --primary: #7c6af7;
+  --primary-dim: #5b4dd6;
+  --accent: #ff6b4a;
+  --accent2: #00d4aa;
+  --text: #e8e8f4;
+  --text2: #9494bb;
+  --text3: #55557a;
+  --slider-track: #1e1e38;
+  --slider-fill: #7c6af7;
+  --success: #2dd4bf;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.7);
+  --panel-w: 270px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+
+/* ============ LAYOUT ============ */
+#app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+/* ============ HEADER ============ */
+#header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 16px; height: 52px; min-height: 52px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  z-index: 100;
+  flex-shrink: 0;
+}
+
+.logo-wrap { display: flex; align-items: center; gap: 10px; margin-right: 4px; }
+.logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #a78bfa 0%, #7c6af7 50%, #ff6b4a 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.mode-tabs { display: flex; gap: 4px; margin-left: 4px; }
+.mode-tab {
+  padding: 6px 14px; border-radius: var(--radius-sm); border: 1px solid transparent;
+  background: transparent; color: var(--text2); cursor: pointer;
+  font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 500;
+  transition: all 0.15s;
+}
+.mode-tab:hover { background: var(--panel2); color: var(--text); }
+.mode-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+.header-spacer { flex: 1; }
+
+.header-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border2); background: var(--panel2);
+  color: var(--text); cursor: pointer; font-family: 'Outfit', sans-serif;
+  font-size: 13px; font-weight: 500; transition: all 0.15s;
+}
+.header-btn:hover { border-color: var(--primary); color: var(--primary); }
+.header-btn.primary { background: var(--primary); border-color: var(--primary); color: white; }
+.header-btn.primary:hover { background: var(--primary-dim); }
+.header-btn.accent { background: var(--accent); border-color: var(--accent); color: white; }
+.header-btn.accent:hover { background: #e85c3a; }
+.header-btn svg { flex-shrink: 0; }
+
+/* ============ EDITOR CONTAINER ============ */
+#editorContainer { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+#imageEditor, #pdfEditor { display: flex; width: 100%; height: 100%; overflow: hidden; }
+
+/* ============ LEFT PANEL ============ */
+.left-panel {
+  width: var(--panel-w); min-width: var(--panel-w);
+  background: var(--panel); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.panel-tabs { display: flex; border-bottom: 1px solid var(--border); }
+.panel-tab {
+  flex: 1; padding: 10px 8px; text-align: center; cursor: pointer;
+  font-size: 12px; font-weight: 600; color: var(--text3); letter-spacing: 0.5px;
+  border-bottom: 2px solid transparent; transition: all 0.15s;
+  text-transform: uppercase;
+}
+.panel-tab:hover { color: var(--text2); }
+.panel-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.panel-section { padding: 12px; overflow-y: auto; flex: 1; display: none; }
+.panel-section.active { display: block; }
+
+/* PRESETS GRID */
+.presets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.preset-btn {
+  position: relative; border-radius: var(--radius-sm); overflow: hidden;
+  cursor: pointer; border: 2px solid transparent; transition: all 0.2s;
+  aspect-ratio: 1; background: var(--panel2);
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+}
+.preset-btn:hover { border-color: var(--primary); transform: translateY(-2px); }
+.preset-btn.active { border-color: var(--primary); }
+.preset-preview { width: 100%; flex: 1; object-fit: cover; }
+.preset-canvas { width: 100%; height: 64px; }
+.preset-label { font-size: 11px; font-weight: 600; padding: 4px 6px; width: 100%;
+  text-align: center; background: rgba(8,8,16,0.8); }
+
+/* TOOLS PANEL */
+.tools-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+.tool-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; padding: 10px 6px; border-radius: var(--radius-sm);
+  background: var(--panel2); border: 1px solid var(--border);
+  cursor: pointer; color: var(--text2); transition: all 0.15s; font-size: 11px;
+}
+.tool-btn:hover { background: var(--border); color: var(--text); }
+.tool-btn.active { background: rgba(124,106,247,0.2); border-color: var(--primary); color: var(--primary); }
+.tool-btn svg { width: 20px; height: 20px; }
+
+.section-title { font-size: 11px; font-weight: 700; color: var(--text3); letter-spacing: 1px;
+  text-transform: uppercase; margin-bottom: 8px; margin-top: 12px; }
+.section-title:first-child { margin-top: 0; }
+
+.transform-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.transform-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 8px 10px; border-radius: var(--radius-sm);
+  background: var(--panel2); border: 1px solid var(--border);
+  cursor: pointer; color: var(--text2); font-size: 12px; transition: all 0.15s;
+}
+.transform-btn:hover { background: var(--border); color: var(--text); }
+
+/* ============ CANVAS AREA ============ */
+.canvas-area {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--bg); position: relative;
+}
+
+.canvas-toolbar {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.canvas-info { font-size: 12px; color: var(--text2); font-family: 'IBM Plex Mono', monospace; }
+.zoom-controls { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.zoom-btn {
+  width: 28px; height: 28px; border-radius: var(--radius-sm); border: 1px solid var(--border2);
+  background: var(--panel2); color: var(--text2); cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+}
+.zoom-btn:hover { color: var(--text); background: var(--border); }
+.zoom-val { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--text2); min-width: 44px; text-align: center; }
+
+.canvas-viewport {
+  flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+
+/* UPLOAD ZONE */
+#uploadZone {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px; width: 100%; height: 100%; cursor: pointer;
+  border: 2px dashed var(--border2); margin: 20px; border-radius: 20px;
+  transition: all 0.2s;
+}
+#uploadZone:hover, #uploadZone.drag-over { border-color: var(--primary); background: rgba(124,106,247,0.05); }
+.upload-icon { width: 64px; height: 64px; color: var(--text3); }
+.upload-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; color: var(--text2); }
+.upload-sub { font-size: 14px; color: var(--text3); }
+.upload-formats { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.format-pill { padding: 3px 10px; border-radius: 99px; background: var(--panel2); border: 1px solid var(--border2); font-size: 12px; color: var(--text3); font-family: 'IBM Plex Mono', monospace; }
+
+/* IMAGE PREVIEW */
+#imagePreviewWrap {
+  position: relative; display: none; cursor: crosshair;
+  transition: transform 0.1s;
+}
+#previewImg {
+  display: block; max-width: none;
+  transition: filter 0.05s;
+  user-select: none;
+}
+.vignette-overlay {
+  position: absolute; inset: 0; pointer-events: none;
+  border-radius: 2px;
+}
+.grain-overlay {
+  position: absolute; inset: 0; pointer-events: none;
+  opacity: 0; border-radius: 2px;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+.text-overlays { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.draw-canvas { position: absolute; inset: 0; }
+
+/* CROP OVERLAY */
+.crop-overlay { position: absolute; inset: 0; pointer-events: none; display: none; }
+.crop-box { position: absolute; border: 2px solid white; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5); }
+.crop-handle { position: absolute; width: 10px; height: 10px; background: white; border: 1px solid rgba(0,0,0,0.5); pointer-events: all; cursor: pointer; }
+
+/* ============ RIGHT PANEL ============ */
+.right-panel {
+  width: var(--panel-w); min-width: var(--panel-w);
+  background: var(--panel); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.adj-scroll { overflow-y: auto; flex: 1; padding: 12px; }
+
+/* ACCORDION */
+.accordion { margin-bottom: 6px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); }
+.accordion-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px; cursor: pointer; background: var(--panel2);
+  font-size: 12px; font-weight: 600; color: var(--text2); letter-spacing: 0.5px;
+  text-transform: uppercase; user-select: none; transition: background 0.15s;
+}
+.accordion-header:hover { background: var(--border); color: var(--text); }
+.accordion-header.open { color: var(--primary); }
+.accordion-arrow { transition: transform 0.2s; }
+.accordion-header.open .accordion-arrow { transform: rotate(180deg); }
+.accordion-body { padding: 10px 12px; background: var(--panel); display: none; }
+.accordion-body.open { display: block; }
+
+/* SLIDER ROW */
+.slider-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.slider-label { font-size: 12px; color: var(--text2); width: 80px; flex-shrink: 0; }
+.slider-wrap { flex: 1; position: relative; }
+input[type=range] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 3px; border-radius: 99px;
+  background: var(--slider-track); outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+  background: white; border: 2px solid var(--primary); cursor: pointer;
+  box-shadow: 0 0 6px rgba(124,106,247,0.5); transition: transform 0.1s;
+}
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+.slider-val {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  color: var(--text3); width: 36px; text-align: right; flex-shrink: 0;
+}
+.slider-val.changed { color: var(--primary); }
+
+/* RESET BTN */
+.reset-all {
+  width: 100%; padding: 8px; border-radius: var(--radius-sm);
+  background: transparent; border: 1px solid var(--border2);
+  color: var(--text3); cursor: pointer; font-size: 12px;
+  font-family: 'Outfit', sans-serif; margin-top: 8px; transition: all 0.15s;
+}
+.reset-all:hover { border-color: var(--accent); color: var(--accent); }
+
+/* HISTOGRAM */
+#histogram { width: 100%; height: 60px; border-radius: var(--radius-sm); overflow: hidden; background: var(--bg); }
+
+/* TEXT TOOL UI */
+.text-tool-ui { display: none; padding: 10px 0; }
+.text-tool-ui.active { display: block; }
+.tool-input {
+  width: 100%; padding: 8px 10px; background: var(--panel2); border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); color: var(--text); font-family: 'Outfit', sans-serif;
+  font-size: 13px; outline: none; transition: border-color 0.15s;
+}
+.tool-input:focus { border-color: var(--primary); }
+.color-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.color-swatch {
+  width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent;
+  transition: transform 0.15s;
+}
+.color-swatch:hover { transform: scale(1.2); }
+.color-swatch.active { border-color: white; transform: scale(1.15); }
+
+/* BRUSH TOOL */
+.brush-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.brush-size-btn {
+  width: 28px; height: 28px; border-radius: 50%; background: var(--panel2);
+  border: 2px solid var(--border2); cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.brush-size-btn:hover, .brush-size-btn.active { border-color: var(--primary); }
+
+/* ============ PDF EDITOR ============ */
+#pdfEditor { display: none; }
+.pdf-sidebar {
+  width: 200px; min-width: 200px;
+  background: var(--panel); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.pdf-thumbnails { overflow-y: auto; flex: 1; padding: 8px; }
+.pdf-thumb {
+  margin-bottom: 8px; cursor: pointer; border-radius: var(--radius-sm);
+  border: 2px solid transparent; overflow: hidden; transition: all 0.15s;
+  background: var(--bg); position: relative;
+}
+.pdf-thumb:hover { border-color: var(--border2); }
+.pdf-thumb.active { border-color: var(--primary); }
+.pdf-thumb canvas { width: 100%; display: block; }
+.pdf-thumb-num { position: absolute; bottom: 4px; right: 4px; font-size: 10px;
+  background: rgba(0,0,0,0.7); padding: 2px 5px; border-radius: 99px;
+  font-family: 'IBM Plex Mono', monospace; }
+
+.pdf-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.pdf-toolbar {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  background: var(--panel); border-bottom: 1px solid var(--border); flex-shrink: 0; flex-wrap: wrap;
+}
+.pdf-toolbar .zoom-controls { margin-left: 0; }
+
+.pdf-page-controls { display: flex; align-items: center; gap: 6px; }
+.pdf-nav-btn {
+  width: 28px; height: 28px; border-radius: var(--radius-sm); border: 1px solid var(--border2);
+  background: var(--panel2); color: var(--text2); cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+}
+.pdf-nav-btn:hover:not(:disabled) { color: var(--text); background: var(--border); }
+.pdf-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.pdf-page-input {
+  width: 44px; text-align: center; padding: 4px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border2); background: var(--panel2); color: var(--text);
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; outline: none;
+}
+.pdf-page-input:focus { border-color: var(--primary); }
+
+.pdf-viewport { flex: 1; overflow: auto; display: flex; align-items: flex-start; justify-content: center; padding: 20px; }
+#pdfCanvas { box-shadow: var(--shadow-lg); border-radius: 2px; max-width: none; }
+
+.pdf-right-panel {
+  width: 220px; min-width: 220px;
+  background: var(--panel); border-left: 1px solid var(--border);
+  overflow-y: auto; padding: 12px;
+}
+.pdf-action-btn {
+  width: 100%; padding: 8px 10px; border-radius: var(--radius-sm);
+  background: var(--panel2); border: 1px solid var(--border);
+  color: var(--text2); cursor: pointer; font-family: 'Outfit', sans-serif;
+  font-size: 13px; display: flex; align-items: center; gap: 8px;
+  margin-bottom: 6px; transition: all 0.15s;
+}
+.pdf-action-btn:hover { background: var(--border); color: var(--text); border-color: var(--border2); }
+.pdf-action-btn svg { color: var(--primary); flex-shrink: 0; }
+
+/* MERGE DROP ZONE */
+.merge-zone {
+  border: 2px dashed var(--border2); border-radius: var(--radius-sm);
+  padding: 16px; text-align: center; cursor: pointer; margin-bottom: 8px;
+  font-size: 12px; color: var(--text3); transition: all 0.2s;
+}
+.merge-zone:hover { border-color: var(--primary); color: var(--text2); }
+.merge-file-list { max-height: 100px; overflow-y: auto; margin-bottom: 6px; }
+.merge-file-item { font-size: 11px; color: var(--text2); padding: 3px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 4px; }
+
+/* DOWNLOAD BAR */
+#downloadBar {
+  display: none; align-items: center; gap: 10px;
+  padding: 8px 16px; background: var(--panel); border-top: 1px solid var(--border);
+  flex-shrink: 0; flex-wrap: wrap;
+}
+.dl-label { font-size: 12px; font-weight: 600; color: var(--text2); letter-spacing: 0.5px; text-transform: uppercase; }
+.dl-format-btns { display: flex; gap: 6px; }
+.dl-format-btn {
+  padding: 5px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border2);
+  background: var(--panel2); color: var(--text2); cursor: pointer; font-size: 12px;
+  font-family: 'IBM Plex Mono', monospace; transition: all 0.15s;
+}
+.dl-format-btn:hover { border-color: var(--primary); color: var(--primary); }
+.dl-format-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+.dl-quality-wrap { display: flex; align-items: center; gap: 6px; }
+.dl-quality-label { font-size: 12px; color: var(--text3); }
+.dl-quality-range { width: 80px; }
+.dl-spacer { flex: 1; }
+
+/* TOAST */
+#toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--panel2); border: 1px solid var(--border2); border-radius: var(--radius);
+  padding: 10px 20px; font-size: 13px; color: var(--text); pointer-events: none;
+  opacity: 0; transition: all 0.3s; z-index: 999; white-space: nowrap;
+  box-shadow: var(--shadow);
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.success { border-color: var(--success); color: var(--success); }
+#toast.error { border-color: var(--accent); color: var(--accent); }
+
+/* LOADING */
+#loadingOverlay {
+  position: fixed; inset: 0; background: rgba(8,8,16,0.85); display: none;
+  align-items: center; justify-content: center; flex-direction: column; gap: 12px; z-index: 500;
+}
+.loader-ring { width: 48px; height: 48px; border-radius: 50%; border: 3px solid var(--border2); border-top-color: var(--primary); animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-text { font-size: 14px; color: var(--text2); }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(8,8,16,0.85); display: none;
+  align-items: center; justify-content: center; z-index: 400; padding: 20px;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--panel); border: 1px solid var(--border2); border-radius: var(--radius);
+  padding: 24px; max-width: 400px; width: 100%; box-shadow: var(--shadow-lg);
+}
+.modal-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+.modal-row { display: flex; gap: 8px; margin-top: 12px; }
+.modal-btn { flex: 1; padding: 10px; border-radius: var(--radius-sm); border: none; cursor: pointer; font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; transition: all 0.15s; }
+.modal-btn.cancel { background: var(--panel2); color: var(--text2); border: 1px solid var(--border2); }
+.modal-btn.cancel:hover { color: var(--text); }
+.modal-btn.confirm { background: var(--primary); color: white; }
+.modal-btn.confirm:hover { background: var(--primary-dim); }
+
+/* MOBILE BOTTOM TABS */
+.mobile-panel-nav {
+  display: none; gap: 0;
+  border-top: 1px solid var(--border); background: var(--panel); flex-shrink: 0;
+}
+.mobile-tab {
+  flex: 1; padding: 10px 4px; text-align: center; cursor: pointer;
+  font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.5px;
+  text-transform: uppercase; transition: all 0.15s; border-top: 2px solid transparent;
+}
+.mobile-tab:hover { color: var(--text2); }
+.mobile-tab.active { color: var(--primary); border-top-color: var(--primary); }
+.mobile-tab svg { display: block; margin: 0 auto 3px; width: 18px; height: 18px; }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 900px) {
+  .left-panel { width: 220px; min-width: 220px; }
+  .right-panel { width: 220px; min-width: 220px; }
+}
+
+@media (max-width: 700px) {
+  :root { --panel-w: 100%; }
+  #app { height: 100%; height: 100dvh; }
+  
+  #header { padding: 0 10px; gap: 6px; }
+  .logo-text { font-size: 17px; }
+  .mode-tabs .mode-tab { padding: 5px 10px; font-size: 12px; }
+  .header-btn span { display: none; }
+  
+  #editorContainer { position: relative; }
+  
+  .left-panel, .right-panel {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    width: 100%; min-width: 100%; z-index: 10;
+    display: none;
+  }
+  .left-panel.mobile-show, .right-panel.mobile-show { display: flex; }
+  
+  .canvas-area { width: 100%; }
+  
+  .mobile-panel-nav { display: flex; }
+  
+  #downloadBar { padding: 6px 10px; }
+  .dl-quality-wrap { display: none; }
+}
+
+@media (max-width: 480px) {
+  .presets-grid { grid-template-columns: repeat(3, 1fr); }
+  .preset-canvas { height: 50px; }
+}
+
+/* ANIMATIONS */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn 0.3s ease forwards; }
+
+/* CURSOR STYLES */
+.tool-crop { cursor: crosshair !important; }
+.tool-text { cursor: text !important; }
+.tool-draw { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'%3E%3Ccircle cx='12' cy='12' r='4' stroke='white' stroke-width='2'/%3E%3C/svg%3E") 12 12, crosshair !important; }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loadingOverlay">
+  <div class="loader-ring"></div>
+  <div class="loader-text">Processing...</div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- HEADER -->
+  <header id="header">
+    <div class="logo-wrap">
+      <!-- CUSTOM SVG LOGO -->
+      <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="logoG1" x1="0" y1="0" x2="34" y2="34" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#a78bfa"/>
+            <stop offset="0.5" stop-color="#7c6af7"/>
+            <stop offset="1" stop-color="#5b4dd6"/>
+          </linearGradient>
+          <linearGradient id="logoG2" x1="22" y1="20" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#ff9d6b"/>
+            <stop offset="1" stop-color="#ff6b4a"/>
+          </linearGradient>
+        </defs>
+        <!-- Main background shape -->
+        <path d="M4 10 L17 2 L30 10 L30 24 L17 32 L4 24 Z" fill="url(#logoG1)"/>
+        <!-- P stem -->
+        <rect x="10" y="9" width="3.5" height="16" rx="1.5" fill="white"/>
+        <!-- P top bar -->
+        <path d="M10 9 Q17 9 19.5 12 Q22 15 19.5 18 Q17 21 10 21" stroke="white" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Edit dot accent -->
+        <circle cx="26" cy="26" r="5" fill="url(#logoG2)"/>
+        <path d="M24.5 27.5 L27.5 24.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M24 28 L23.5 29.5 L25 29" stroke="white" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="logo-text">PEdit</span>
+    </div>
+
+    <div class="mode-tabs">
+      <button class="mode-tab active" onclick="setMode('image')" id="tabImage">✦ Image</button>
+      <button class="mode-tab" onclick="setMode('pdf')" id="tabPdf">⬡ PDF</button>
+    </div>
+
+    <div class="header-spacer"></div>
+
+    <button class="header-btn" onclick="triggerUpload()" id="uploadBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      <span>Open</span>
+    </button>
+    <button class="header-btn accent" onclick="triggerDownload()" id="downloadBtn" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>Save</span>
+    </button>
+    <button class="header-btn" onclick="resetEditor()" id="resetBtn" style="display:none">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102 5.3"/></svg>
+      <span>Reset</span>
+    </button>
+  </header>
+
+  <!-- EDITOR CONTAINER -->
+  <div id="editorContainer">
+
+    <!-- ===== IMAGE EDITOR ===== -->
+    <div id="imageEditor">
+
+      <!-- LEFT PANEL -->
+      <aside class="left-panel" id="leftPanel">
+        <div class="panel-tabs">
+          <div class="panel-tab active" data-tab="presets" onclick="switchLeftTab('presets',this)">Presets</div>
+          <div class="panel-tab" data-tab="tools" onclick="switchLeftTab('tools',this)">Tools</div>
+          <div class="panel-tab" data-tab="history" onclick="switchLeftTab('history',this)">History</div>
+        </div>
+
+        <!-- PRESETS -->
+        <div class="panel-section active" id="tab-presets">
+          <div class="presets-grid" id="presetsGrid"></div>
+        </div>
+
+        <!-- TOOLS -->
+        <div class="panel-section" id="tab-tools">
+          <div class="section-title">Edit Tools</div>
+          <div class="tools-grid">
+            <div class="tool-btn active" data-tool="select" onclick="setTool('select',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 9-7 1-4 7z"/></svg>
+              Select
+            </div>
+            <div class="tool-btn" data-tool="crop" onclick="setTool('crop',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 2 6 19 21 19"/><polyline points="2 6 19 6 19 21"/></svg>
+              Crop
+            </div>
+            <div class="tool-btn" data-tool="draw" onclick="setTool('draw',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              Draw
+            </div>
+            <div class="tool-btn" data-tool="text" onclick="setTool('text',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+              Text
+            </div>
+            <div class="tool-btn" data-tool="erase" onclick="setTool('erase',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16l9-9 8 8-2.5 2.5"/><path d="M6.0001 11L13 4"/></svg>
+              Erase
+            </div>
+            <div class="tool-btn" data-tool="eyedrop" onclick="setTool('eyedrop',this)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 22l1-1h3l9-9"/><path d="M3 21v-3l9-9"/><path d="M15 6l3.4-3.4a2 2 0 012.8 0L22 4.2a2 2 0 010 2.8L18.6 10"/></svg>
+              Pick
+            </div>
+          </div>
+
+          <!-- Text Tool -->
+          <div class="text-tool-ui" id="textToolUI">
+            <div class="section-title">Text Options</div>
+            <input type="text" class="tool-input" id="textInput" placeholder="Type your text..." value="PEdit Text">
+            <div style="margin-top:8px;">
+              <select class="tool-input" id="textFont" style="margin-bottom:6px;">
+                <option>Outfit</option><option>Syne</option><option>IBM Plex Mono</option>
+                <option>serif</option><option>sans-serif</option>
+              </select>
+            </div>
+            <div class="slider-row">
+              <span class="slider-label">Size</span>
+              <input type="range" min="10" max="120" value="32" id="textSize">
+              <span class="slider-val">32</span>
+            </div>
+            <div class="section-title" style="margin-top:8px;">Color</div>
+            <div class="color-row" id="textColorRow">
+              <div class="color-swatch active" style="background:#ffffff" data-color="#ffffff"></div>
+              <div class="color-swatch" style="background:#000000" data-color="#000000"></div>
+              <div class="color-swatch" style="background:#ff6b4a" data-color="#ff6b4a"></div>
+              <div class="color-swatch" style="background:#7c6af7" data-color="#7c6af7"></div>
+              <div class="color-swatch" style="background:#2dd4bf" data-color="#2dd4bf"></div>
+              <div class="color-swatch" style="background:#fbbf24" data-color="#fbbf24"></div>
+              <div class="color-swatch" style="background:#f472b6" data-color="#f472b6"></div>
+              <input type="color" value="#ffffff" id="textColorCustom" style="width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid var(--border2);background:none;padding:0;">
+            </div>
+            <div style="margin-top:8px;">
+              <button class="transform-btn" onclick="addTextOverlay()" style="width:100%">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Text to Image
+              </button>
+            </div>
+          </div>
+
+          <!-- Draw Tool -->
+          <div class="text-tool-ui" id="drawToolUI">
+            <div class="section-title">Brush Options</div>
+            <div class="slider-row">
+              <span class="slider-label">Size</span>
+              <input type="range" min="1" max="80" value="10" id="brushSize" oninput="updateBrushSize(this.value)">
+              <span class="slider-val" id="brushSizeVal">10</span>
+            </div>
+            <div class="slider-row">
+              <span class="slider-label">Opacity</span>
+              <input type="range" min="5" max="100" value="100" id="brushOpacity">
+              <span class="slider-val">100</span>
+            </div>
+            <div class="section-title">Brush Color</div>
+            <div class="color-row" id="brushColorRow">
+              <div class="color-swatch active" style="background:#ffffff" data-color="#ffffff"></div>
+              <div class="color-swatch" style="background:#ff6b4a" data-color="#ff6b4a"></div>
+              <div class="color-swatch" style="background:#7c6af7" data-color="#7c6af7"></div>
+              <div class="color-swatch" style="background:#2dd4bf" data-color="#2dd4bf"></div>
+              <div class="color-swatch" style="background:#fbbf24" data-color="#fbbf24"></div>
+              <div class="color-swatch" style="background:#000000" data-color="#000000"></div>
+              <input type="color" value="#ffffff" id="brushColorCustom" style="width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid var(--border2);background:none;padding:0;">
+            </div>
+            <div style="margin-top:8px;">
+              <button class="transform-btn" onclick="clearDrawing()" style="width:100%;margin-bottom:6px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></polyline></svg>
+                Clear Drawing
+              </button>
+              <button class="transform-btn" onclick="flattenDrawing()" style="width:100%">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29"/></svg>
+                Flatten Drawing
+              </button>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top:16px;">Transform</div>
+          <div class="transform-btns">
+            <button class="transform-btn" onclick="rotate(90)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+              Rotate 90°
+            </button>
+            <button class="transform-btn" onclick="rotate(-90)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102 5.3"/></svg>
+              Rotate -90°
+            </button>
+            <button class="transform-btn" onclick="flipH()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 00-2 2v14c0 1.1.9 2 2 2h3"/><path d="M16 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3"/><line x1="12" y1="20" x2="12" y2="4"/></svg>
+              Flip H
+            </button>
+            <button class="transform-btn" onclick="flipV()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v3"/><path d="M21 16v3a2 2 0 01-2 2H5a2 2 0 01-2-2v-3"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
+              Flip V
+            </button>
+            <button class="transform-btn" onclick="rotate(180)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+              Rotate 180°
+            </button>
+            <button class="transform-btn" onclick="applyFreeRotation()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>
+              Apply Free
+            </button>
+          </div>
+          <div class="slider-row" style="margin-top:8px">
+            <span class="slider-label">Free Rotate</span>
+            <input type="range" min="-180" max="180" value="0" id="freeRotate" oninput="previewFreeRotation(this.value)">
+            <span class="slider-val" id="freeRotateVal">0°</span>
+          </div>
+
+          <div class="section-title" style="margin-top:12px;">Resize</div>
+          <div style="display:flex;gap:6px;margin-bottom:6px;">
+            <input type="number" class="tool-input" id="resizeW" placeholder="Width" style="flex:1">
+            <input type="number" class="tool-input" id="resizeH" placeholder="Height" style="flex:1">
+          </div>
+          <button class="transform-btn" onclick="applyResize()" style="width:100%">Apply Resize</button>
+        </div>
+
+        <!-- HISTORY -->
+        <div class="panel-section" id="tab-history">
+          <div class="section-title">Edit History</div>
+          <div id="historyList" style="display:flex;flex-direction:column;gap:4px"></div>
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <button class="transform-btn" onclick="undoAction()" style="flex:1" id="undoBtn">↩ Undo</button>
+            <button class="transform-btn" onclick="redoAction()" style="flex:1" id="redoBtn">↪ Redo</button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- CANVAS AREA -->
+      <main class="canvas-area">
+        <div class="canvas-toolbar">
+          <span class="canvas-info" id="imgInfo">No image loaded</span>
+          <div class="zoom-controls">
+            <button class="zoom-btn" onclick="zoomBy(-0.25)">−</button>
+            <span class="zoom-val" id="zoomVal">100%</span>
+            <button class="zoom-btn" onclick="zoomBy(0.25)">+</button>
+            <button class="zoom-btn" onclick="fitToScreen()" title="Fit to screen" style="width:auto;padding:0 8px;font-size:11px">Fit</button>
+            <button class="zoom-btn" onclick="setZoom(1)" title="100%" style="width:auto;padding:0 8px;font-size:11px">1:1</button>
+          </div>
+        </div>
+
+        <div class="canvas-viewport" id="canvasViewport">
+          <!-- UPLOAD ZONE -->
+          <div id="uploadZone" onclick="triggerUpload()" ondragover="e.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
+            <svg class="upload-icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="8" y="16" width="48" height="36" rx="4" stroke-dasharray="4 3"/>
+              <path d="M32 36V20m-8 8l8-8 8 8" stroke-width="2"/>
+              <path d="M20 52c0-6.6 5.4-12 12-12s12 5.4 12 12" opacity="0.4"/>
+            </svg>
+            <div class="upload-title">Drop your image here</div>
+            <div class="upload-sub">or click to browse files</div>
+            <div class="upload-formats">
+              <span class="format-pill">JPG</span>
+              <span class="format-pill">PNG</span>
+              <span class="format-pill">WebP</span>
+              <span class="format-pill">GIF</span>
+              <span class="format-pill">BMP</span>
+              <span class="format-pill">TIFF</span>
+              <span class="format-pill">SVG</span>
+            </div>
+          </div>
+
+          <!-- IMAGE PREVIEW WRAP -->
+          <div id="imagePreviewWrap">
+            <img id="previewImg" src="" alt="Preview" draggable="false">
+            <div class="vignette-overlay" id="vignetteOverlay"></div>
+            <div class="grain-overlay" id="grainOverlay"></div>
+            <div class="text-overlays" id="textOverlays"></div>
+            <canvas class="draw-canvas" id="drawCanvas"></canvas>
+          </div>
+        </div>
+      </main>
+
+      <!-- RIGHT PANEL -->
+      <aside class="right-panel" id="rightPanel">
+        <div style="padding:10px 12px;border-bottom:1px solid var(--border)">
+          <canvas id="histogram" width="246" height="60"></canvas>
+        </div>
+        <div class="adj-scroll">
+
+          <!-- BASIC -->
+          <div class="accordion">
+            <div class="accordion-header open" onclick="toggleAccordion(this)">
+              Basic
+              <svg class="accordion-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="accordion-body open">
+              <div class="slider-row"><span class="slider-label">Exposure</span><input type="range" class="adj-slider" data-key="exposure" min="-100" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Contrast</span><input type="range" class="adj-slider" data-key="contrast" min="-100" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Highlights</span><input type="range" class="adj-slider" data-key="highlights" min="-100" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Shadows</span><input type="range" class="adj-slider" data-key="shadows" min="-100" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Whites</span><input type="range" class="adj-slider" data-key="whites" min="-100" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Blacks</span><input type="range" class="adj-slider" data-key="blacks" min="-100" max="100" value="0"><span class="slider-val">0</span></div>
+            </div>
+          </div>
+
+          <!-- COLOR -->
+          <div class="accordion">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              Color
+              <svg class="accordion-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="accordion-body">
+              <div class="slider-row"><span class="slider-label">Temperature</span><input type="range" class="adj-slider" data-key="temperature" min="-100" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Tint</span><input type="range" class="adj-slider" data-key="tint" min="-100" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Vibrance</span><input type="range" class="adj-slider" data-key="vibrance" min="-100" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Saturation</span><input type="range" class="adj-slider" data-key="saturation" min="-100" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Hue</span><input type="range" class="adj-slider" data-key="hue" min="-180" max="180" value="0"><span class="slider-val">0</span></div>
+            </div>
+          </div>
+
+          <!-- DETAIL -->
+          <div class="accordion">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              Detail
+              <svg class="accordion-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="accordion-body">
+              <div class="slider-row"><span class="slider-label">Clarity</span><input type="range" class="adj-slider" data-key="clarity" min="-100" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Sharpness</span><input type="range" class="adj-slider" data-key="sharpness" min="0" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Noise Red.</span><input type="range" class="adj-slider" data-key="noise" min="0" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Blur</span><input type="range" class="adj-slider" data-key="blur" min="0" max="20" value="0" step="0.5"><span class="slider-val">0</span></div>
+            </div>
+          </div>
+
+          <!-- EFFECTS -->
+          <div class="accordion">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              Effects
+              <svg class="accordion-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="accordion-body">
+              <div class="slider-row"><span class="slider-label">Vignette</span><input type="range" class="adj-slider" data-key="vignette" min="0" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Grain</span><input type="range" class="adj-slider" data-key="grain" min="0" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Fade</span><input type="range" class="adj-slider" data-key="fade" min="0" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Dehaze</span><input type="range" class="adj-slider" data-key="dehaze" min="-100" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Chr. Aber.</span><input type="range" class="adj-slider" data-key="chroma" min="0" max="20" value="0" step="0.5"><span class="slider-val">0</span></div>
+            </div>
+          </div>
+
+          <!-- TONE -->
+          <div class="accordion">
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+              Tone
+              <svg class="accordion-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="accordion-body">
+              <div class="slider-row"><span class="slider-label">Sepia</span><input type="range" class="adj-slider" data-key="sepia" min="0" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Grayscale</span><input type="range" class="adj-slider" data-key="grayscale" min="0" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Invert</span><input type="range" class="adj-slider" data-key="invert" min="0" max="100" value="0"><span class="slider-val">0</span></div>
+              <div class="slider-row"><span class="slider-label">Opacity</span><input type="range" class="adj-slider" data-key="opacity" min="10" max="100" value="100"><span class="slider-val">100</span></div>
+            </div>
+          </div>
+
+          <button class="reset-all" onclick="resetAdjustments()">↺ Reset All Adjustments</button>
+
+        </div><!-- /adj-scroll -->
+      </aside>
+    </div><!-- /imageEditor -->
+
+    <!-- ===== PDF EDITOR ===== -->
+    <div id="pdfEditor">
+      <!-- Thumbnail sidebar -->
+      <div class="pdf-sidebar">
+        <div class="panel-tabs">
+          <div class="panel-tab active">Pages</div>
+        </div>
+        <div class="pdf-thumbnails" id="pdfThumbnails">
+          <div style="text-align:center;color:var(--text3);font-size:12px;padding:20px;">No PDF loaded</div>
+        </div>
+      </div>
+
+      <!-- PDF main view -->
+      <div class="pdf-main">
+        <div class="pdf-toolbar">
+          <div class="pdf-page-controls">
+            <button class="pdf-nav-btn" id="pdfPrevBtn" onclick="pdfPrevPage()" disabled>‹</button>
+            <input type="number" class="pdf-page-input" id="pdfPageInput" value="1" min="1" onchange="pdfGoToPage(this.value)">
+            <span style="color:var(--text3);font-size:13px">/ <span id="pdfTotalPages">0</span></span>
+            <button class="pdf-nav-btn" id="pdfNextBtn" onclick="pdfNextPage()" disabled>›</button>
+          </div>
+          <div class="zoom-controls">
+            <button class="zoom-btn" onclick="pdfZoom(-0.25)">−</button>
+            <span class="zoom-val" id="pdfZoomVal">100%</span>
+            <button class="zoom-btn" onclick="pdfZoom(0.25)">+</button>
+          </div>
+          <button class="header-btn" onclick="rotatePdfPage()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+            <span>Rotate Page</span>
+          </button>
+          <button class="header-btn" onclick="downloadCurrentPdfPage()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Page as PNG</span>
+          </button>
+        </div>
+
+        <div class="pdf-viewport" id="pdfViewport">
+          <div id="pdfUploadZone" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;width:100%;height:100%;cursor:pointer;border:2px dashed var(--border2);margin:20px;border-radius:20px;" onclick="triggerPdfUpload()" ondragover="event.preventDefault();this.style.borderColor='var(--primary)'" ondragleave="this.style.borderColor='var(--border2)'" ondrop="handlePdfDrop(event)">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text3)">
+              <rect x="12" y="4" width="40" height="56" rx="4"/>
+              <path d="M24 4v16h16"/>
+              <line x1="20" y1="32" x2="44" y2="32"/>
+              <line x1="20" y1="40" x2="44" y2="40"/>
+              <line x1="20" y1="48" x2="36" y2="48"/>
+            </svg>
+            <div class="upload-title">Drop your PDF here</div>
+            <div class="upload-sub">or click to browse — PDF files only</div>
+          </div>
+          <canvas id="pdfCanvas" style="display:none"></canvas>
+        </div>
+      </div>
+
+      <!-- PDF right panel -->
+      <div class="pdf-right-panel">
+        <div class="section-title">PDF Tools</div>
+
+        <button class="pdf-action-btn" onclick="downloadPdfAllPages()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          All Pages as PNG
+        </button>
+
+        <button class="pdf-action-btn" onclick="extractPageRange()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Extract Page Range
+        </button>
+
+        <div id="extractRangeUI" style="display:none;margin-bottom:8px;">
+          <div style="display:flex;gap:6px;margin-bottom:6px;">
+            <input type="number" class="tool-input" id="extractFrom" placeholder="From" min="1" style="flex:1">
+            <input type="number" class="tool-input" id="extractTo" placeholder="To" min="1" style="flex:1">
+          </div>
+          <button class="transform-btn" onclick="doExtractPages()" style="width:100%">Extract</button>
+        </div>
+
+        <div class="section-title" style="margin-top:12px;">Merge PDFs</div>
+        <div class="merge-zone" onclick="triggerMergeUpload()" id="mergeZone">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin:0 auto 6px;display:block"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add PDF files to merge
+        </div>
+        <div class="merge-file-list" id="mergeFileList"></div>
+        <button class="pdf-action-btn" onclick="mergePDFs()" id="mergeBtn" style="display:none">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          Merge & Download
+        </button>
+
+        <div class="section-title" style="margin-top:12px;">Page Settings</div>
+        <div class="slider-row">
+          <span class="slider-label">Rotation</span>
+          <select class="tool-input" id="pdfRotSelect" onchange="setPdfRotation(this.value)" style="flex:1;padding:4px 8px">
+            <option value="0">0°</option>
+            <option value="90">90°</option>
+            <option value="180">180°</option>
+            <option value="270">270°</option>
+          </select>
+        </div>
+
+        <div class="section-title" style="margin-top:12px;">Page as Image</div>
+        <div class="slider-row">
+          <span class="slider-label">Quality</span>
+          <input type="range" min="1" max="4" value="2" step="0.5" id="pdfExportScale" oninput="document.getElementById('pdfScaleVal').textContent=this.value+'x'">
+          <span class="slider-val" id="pdfScaleVal">2x</span>
+        </div>
+
+        <div class="section-title" style="margin-top:12px;">Info</div>
+        <div style="font-size:12px;color:var(--text2);font-family:'IBM Plex Mono',monospace;" id="pdfInfoPanel">—</div>
+      </div>
+    </div><!-- /pdfEditor -->
+
+  </div><!-- /editorContainer -->
+
+  <!-- DOWNLOAD BAR (image mode) -->
+  <div id="downloadBar">
+    <span class="dl-label">Export</span>
+    <div class="dl-format-btns">
+      <button class="dl-format-btn active" data-fmt="png" onclick="setDownloadFormat('png',this)">PNG</button>
+      <button class="dl-format-btn" data-fmt="jpeg" onclick="setDownloadFormat('jpeg',this)">JPG</button>
+      <button class="dl-format-btn" data-fmt="webp" onclick="setDownloadFormat('webp',this)">WebP</button>
+    </div>
+    <div class="dl-quality-wrap">
+      <span class="dl-quality-label">Quality</span>
+      <input type="range" class="dl-quality-range" min="50" max="100" value="92" id="dlQuality">
+      <span class="slider-val" id="dlQualityVal">92%</span>
+    </div>
+    <div class="dl-spacer"></div>
+    <button class="header-btn accent" onclick="downloadImage()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download
+    </button>
+  </div>
+
+  <!-- MOBILE BOTTOM NAV -->
+  <nav class="mobile-panel-nav" id="mobilePanelNav" style="display:none">
+    <div class="mobile-tab active" data-panel="left" onclick="showMobilePanel('left',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+      Presets
+    </div>
+    <div class="mobile-tab" data-panel="canvas" onclick="showMobilePanel('canvas',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Canvas
+    </div>
+    <div class="mobile-tab" data-panel="right" onclick="showMobilePanel('right',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+      Adjust
+    </div>
+  </nav>
+
+</div><!-- /app -->
+
+<!-- Hidden inputs -->
+<input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleImageFile(this.files[0])">
+<input type="file" id="pdfInput" accept=".pdf,application/pdf" style="display:none" onchange="handlePdfFile(this.files[0])">
+<input type="file" id="mergeInput" accept=".pdf,application/pdf" multiple style="display:none" onchange="handleMergeFiles(this.files)">
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const state = {
+  mode: 'image',
+  image: null,       // HTMLImageElement
+  imageOrigSrc: null, // original blob URL
+  fileName: 'image',
+  adjustments: {
+    exposure: 0, contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0,
+    temperature: 0, tint: 0, vibrance: 0, saturation: 0, hue: 0,
+    clarity: 0, sharpness: 0, noise: 0, blur: 0,
+    vignette: 0, grain: 0, fade: 0, dehaze: 0, chroma: 0,
+    sepia: 0, grayscale: 0, invert: 0, opacity: 100
+  },
+  transform: { rotation: 0, flipH: false, flipV: false, freeAngle: 0 },
+  zoom: 1,
+  tool: 'select',
+  textColor: '#ffffff',
+  brushColor: '#ffffff',
+  brushSize: 10,
+  downloadFormat: 'png',
+  downloadQuality: 0.92,
+  history: [],
+  historyIndex: -1,
+  // PDF
+  pdfDoc: null,
+  pdfCurrentPage: 1,
+  pdfTotalPages: 0,
+  pdfZoom: 1.5,
+  pdfRotation: 0,
+  pdfMergeFiles: [],
+  // draw
+  isDrawing: false,
+  lastDrawX: 0, lastDrawY: 0,
+};
+
+// PDF.js worker
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+// ============================================================
+// PRESETS
+// ============================================================
+const PRESETS = {
+  'Original': {},
+  'Vivid': { exposure: 5, contrast: 20, saturation: 40, vignette: 10 },
+  'Noir': { exposure: -10, contrast: 35, grayscale: 100, vignette: 45 },
+  'Vintage': { exposure: 5, contrast: -10, saturation: -25, hue: 15, sepia: 35, vignette: 30, fade: 20 },
+  'Cinematic': { exposure: -8, contrast: 25, saturation: -15, vignette: 55, fade: 12, clarity: 10 },
+  'Warm': { exposure: 5, contrast: 8, saturation: 15, hue: 10, sepia: 20, temperature: 35 },
+  'Cool': { exposure: 0, contrast: 5, saturation: 5, hue: -15, temperature: -35 },
+  'High Contrast': { contrast: 65, saturation: 20, clarity: 30 },
+  'Faded': { exposure: 8, contrast: -25, fade: 45, saturation: -25 },
+  'Chrome': { contrast: 30, saturation: 35, sharpness: 20 },
+  'Matte': { contrast: -12, fade: 32, saturation: -15, blacks: 25 },
+  'Dreamy': { exposure: 8, saturation: 25, vignette: 20, fade: 15, blur: 0.5 },
+  'Golden Hour': { exposure: 12, hue: 15, sepia: 30, saturation: 25, temperature: 40 },
+  'Cyberpunk': { hue: 170, saturation: 60, contrast: 35, vignette: 30 },
+  'Polaroid': { contrast: -5, saturation: 25, sepia: 35, vignette: 40, fade: 22 },
+  'Cross Process': { hue: 20, saturation: 45, contrast: 32, clarity: 15 },
+  'Bleach Bypass': { saturation: -45, contrast: 45, fade: 10 },
+  'Pastel': { saturation: -35, exposure: 12, contrast: -12, fade: 20 },
+  'Dark Moody': { exposure: -22, contrast: 25, vignette: 65, clarity: 10 },
+  'Film': { contrast: 12, saturation: -12, sepia: 12, vignette: 22, fade: 12, grain: 20 },
+};
+
+const PRESET_COLORS = {
+  'Original': ['#888','#aaa','#ccc'],
+  'Vivid': ['#ff6b4a','#fbbf24','#34d399'],
+  'Noir': ['#333','#666','#999'],
+  'Vintage': ['#b5a28a','#8a6a4a','#c8a870'],
+  'Cinematic': ['#1a2a4a','#3a4a6a','#8a9aba'],
+  'Warm': ['#ff9a4a','#ffc07a','#ffe0b0'],
+  'Cool': ['#4a8aff','#7ab0ff','#b0d0ff'],
+  'High Contrast': ['#000','#888','#fff'],
+  'Faded': ['#aaa','#bbb','#ccc'],
+  'Chrome': ['#4af','#f4a','#af4'],
+  'Matte': ['#7a6a5a','#9a8a7a','#bab0a8'],
+  'Dreamy': ['#f4a0c8','#c8a0f4','#a0c8f4'],
+  'Golden Hour': ['#ff9500','#ffc200','#ff6a00'],
+  'Cyberpunk': ['#00ffaa','#ff00aa','#0088ff'],
+  'Polaroid': ['#f4ecd8','#c8b898','#987848'],
+  'Cross Process': ['#22cc88','#8822cc','#cc8822'],
+  'Bleach Bypass': ['#ccc','#aaa','#888'],
+  'Pastel': ['#ffb3c6','#b3c6ff','#b3ffb3'],
+  'Dark Moody': ['#111','#222','#444'],
+  'Film': ['#c8a870','#887850','#60503a'],
+};
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  buildPresetGrid();
+  setupSliders();
+  setupDrawCanvas();
+  setupColorSwatches();
+  updateHistogram();
+  
+  // Quality display
+  document.getElementById('dlQuality').addEventListener('input', function() {
+    state.downloadQuality = this.value / 100;
+    document.getElementById('dlQualityVal').textContent = this.value + '%';
+  });
+  
+  // Text size display
+  document.getElementById('textSize').addEventListener('input', function() {
+    this.nextElementSibling.textContent = this.value;
+  });
+  
+  // Free rotate display
+  document.getElementById('freeRotate').addEventListener('input', function() {
+    document.getElementById('freeRotateVal').textContent = this.value + '°';
+  });
+  
+  checkMobile();
+  window.addEventListener('resize', checkMobile);
+  window.addEventListener('keydown', handleKeyboard);
+}
+
+function checkMobile() {
+  const isMobile = window.innerWidth <= 700;
+  document.getElementById('mobilePanelNav').style.display = isMobile ? 'flex' : 'none';
+  if (isMobile && state.mode === 'image') {
+    showMobilePanel('canvas', document.querySelector('.mobile-tab[data-panel="canvas"]'));
+  }
+}
+
+function buildPresetGrid() {
+  const grid = document.getElementById('presetsGrid');
+  grid.innerHTML = '';
+  Object.keys(PRESETS).forEach(name => {
+    const btn = document.createElement('div');
+    btn.className = 'preset-btn' + (name === 'Original' ? ' active' : '');
+    btn.title = name;
+    const canvas = document.createElement('canvas');
+    canvas.className = 'preset-canvas';
+    canvas.width = 100; canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    const colors = PRESET_COLORS[name] || ['#888','#aaa','#ccc'];
+    const grd = ctx.createLinearGradient(0, 0, 100, 64);
+    grd.addColorStop(0, colors[0]);
+    grd.addColorStop(0.5, colors[1]);
+    grd.addColorStop(1, colors[2]);
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, 100, 64);
+    ctx.font = 'bold 9px Outfit, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.textAlign = 'center';
+    ctx.fillText(name, 50, 32);
+    const label = document.createElement('div');
+    label.className = 'preset-label';
+    label.textContent = name;
+    btn.appendChild(canvas);
+    btn.appendChild(label);
+    btn.addEventListener('click', () => applyPreset(name, btn));
+    grid.appendChild(btn);
+  });
+}
+
+// Update preset canvas with actual image preview
+function updatePresetPreviews() {
+  if (!state.image) return;
+  const grid = document.getElementById('presetsGrid');
+  Array.from(grid.querySelectorAll('.preset-btn')).forEach((btn, i) => {
+    const name = Object.keys(PRESETS)[i];
+    const canvas = btn.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+    const adj = Object.assign({}, getDefaultAdj(), PRESETS[name]);
+    ctx.filter = buildFilterString(adj);
+    canvas.width = 100; canvas.height = 64;
+    ctx.drawImage(state.image, 0, 0, 100, 64);
+    ctx.filter = 'none';
+    if (adj.vignette > 0) {
+      const v = adj.vignette / 100;
+      const g = ctx.createRadialGradient(50,32,10,50,32,70);
+      g.addColorStop(0,'rgba(0,0,0,0)');
+      g.addColorStop(1,`rgba(0,0,0,${v*0.8})`);
+      ctx.fillStyle = g; ctx.fillRect(0,0,100,64);
+    }
+  });
+}
+
+// ============================================================
+// ADJUSTMENTS
+// ============================================================
+function getDefaultAdj() {
+  return {
+    exposure: 0, contrast: 0, highlights: 0, shadows: 0, whites: 0, blacks: 0,
+    temperature: 0, tint: 0, vibrance: 0, saturation: 0, hue: 0,
+    clarity: 0, sharpness: 0, noise: 0, blur: 0,
+    vignette: 0, grain: 0, fade: 0, dehaze: 0, chroma: 0,
+    sepia: 0, grayscale: 0, invert: 0, opacity: 100
+  };
+}
+
+function setupSliders() {
+  document.querySelectorAll('.adj-slider').forEach(slider => {
+    slider.addEventListener('input', function() {
+      const key = this.dataset.key;
+      state.adjustments[key] = parseFloat(this.value);
+      const valEl = this.closest('.slider-row').querySelector('.slider-val');
+      valEl.textContent = this.value;
+      valEl.classList.toggle('changed', parseFloat(this.value) !== 0);
+      applyFilters();
+      updateHistogram();
+    });
+  });
+}
+
+function buildFilterString(adj) {
+  const brightness = 1 + (adj.exposure || 0) / 100;
+  const contrast = 1 + (adj.contrast || 0) / 100;
+  const saturate = 1 + ((adj.saturation || 0) + (adj.vibrance || 0) * 0.5) / 100;
+  const hueRot = (adj.hue || 0);
+  const blur = adj.blur || 0;
+  const sepia = Math.min(1, (adj.sepia || 0) / 100);
+  const grayscale = Math.min(1, (adj.grayscale || 0) / 100);
+  const invert = Math.min(1, (adj.invert || 0) / 100);
+  const opacity = Math.min(1, (adj.opacity || 100) / 100);
+  let parts = [
+    `brightness(${brightness.toFixed(3)})`,
+    `contrast(${contrast.toFixed(3)})`,
+    `saturate(${Math.max(0, saturate).toFixed(3)})`,
+    `hue-rotate(${hueRot}deg)`,
+  ];
+  if (blur > 0) parts.push(`blur(${blur}px)`);
+  if (sepia > 0) parts.push(`sepia(${sepia.toFixed(3)})`);
+  if (grayscale > 0) parts.push(`grayscale(${grayscale.toFixed(3)})`);
+  if (invert > 0) parts.push(`invert(${invert.toFixed(3)})`);
+  if (opacity < 1) parts.push(`opacity(${opacity.toFixed(3)})`);
+  
+  // Clarity via contrast
+  if (adj.clarity && adj.clarity !== 0) {
+    const clar = 1 + (adj.clarity * 0.005);
+    parts.push(`contrast(${clar.toFixed(3)})`);
+  }
+  // Highlights/shadows via brightness (rough approximation)
+  if (adj.highlights && adj.highlights !== 0) {
+    parts.push(`brightness(${(1 + adj.highlights * 0.003).toFixed(3)})`);
+  }
+  // Dehaze
+  if (adj.dehaze && adj.dehaze !== 0) {
+    parts.push(`contrast(${(1 + adj.dehaze * 0.005).toFixed(3)})`);
+    parts.push(`saturate(${(1 + adj.dehaze * 0.005).toFixed(3)})`);
+  }
+  return parts.join(' ');
+}
+
+function applyFilters() {
+  const img = document.getElementById('previewImg');
+  if (!img.src) return;
+  img.style.filter = buildFilterString(state.adjustments);
+  
+  // Temperature: color overlay
+  applyTemperatureOverlay();
+  // Vignette overlay
+  applyVignetteOverlay();
+  // Grain overlay
+  applyGrainOverlay();
+  // Fade overlay
+  applyFadeOverlay();
+  // Chroma aberration (CSS trick with text-shadow for preview)
+  applyChromaPreview();
+  // Transform
+  applyTransformCSS();
+}
+
+function applyTemperatureOverlay() {
+  const wrap = document.getElementById('imagePreviewWrap');
+  let tempEl = wrap.querySelector('.temp-overlay');
+  const temp = state.adjustments.temperature;
+  const tint = state.adjustments.tint;
+  if (!tempEl) {
+    tempEl = document.createElement('div');
+    tempEl.className = 'temp-overlay';
+    tempEl.style.cssText = 'position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;';
+    wrap.insertBefore(tempEl, wrap.querySelector('.vignette-overlay'));
+  }
+  if (temp === 0 && tint === 0) { tempEl.style.background = 'none'; return; }
+  const warmR = Math.max(0, temp) / 100;
+  const coolB = Math.max(0, -temp) / 100;
+  const greenT = Math.max(0, tint) / 100;
+  const magentaT = Math.max(0, -tint) / 100;
+  const r = Math.round(warmR * 255);
+  const g = Math.round(greenT * 100);
+  const b = Math.round(coolB * 200);
+  const a = Math.max(warmR, coolB, greenT, magentaT) * 0.18;
+  tempEl.style.background = `rgba(${r},${g},${b},${a})`;
+}
+
+function applyVignetteOverlay() {
+  const el = document.getElementById('vignetteOverlay');
+  const v = state.adjustments.vignette / 100;
+  if (v <= 0) { el.style.background = 'none'; return; }
+  el.style.background = `radial-gradient(ellipse at center, rgba(0,0,0,0) 40%, rgba(0,0,0,${v * 0.85}) 100%)`;
+}
+
+function applyGrainOverlay() {
+  const el = document.getElementById('grainOverlay');
+  el.style.opacity = state.adjustments.grain / 200;
+}
+
+function applyFadeOverlay() {
+  const wrap = document.getElementById('imagePreviewWrap');
+  let fadeEl = wrap.querySelector('.fade-overlay');
+  const fade = state.adjustments.fade / 100;
+  if (!fadeEl) {
+    fadeEl = document.createElement('div');
+    fadeEl.className = 'fade-overlay';
+    fadeEl.style.cssText = 'position:absolute;inset:0;pointer-events:none;';
+    wrap.appendChild(fadeEl);
+  }
+  fadeEl.style.background = fade > 0 ? `rgba(200,190,175,${fade * 0.35})` : 'none';
+}
+
+function applyChromaPreview() {
+  const img = document.getElementById('previewImg');
+  const c = state.adjustments.chroma;
+  if (c <= 0) { img.style.boxShadow = ''; return; }
+  const offset = Math.round(c * 0.6);
+  img.style.boxShadow = `${-offset}px 0 ${offset*2}px rgba(255,0,0,0.3), ${offset}px 0 ${offset*2}px rgba(0,0,255,0.3)`;
+}
+
+function applyTransformCSS() {
+  const wrap = document.getElementById('imagePreviewWrap');
+  let transforms = [];
+  if (state.transform.rotation !== 0) transforms.push(`rotate(${state.transform.rotation}deg)`);
+  if (state.transform.freeAngle !== 0) transforms.push(`rotate(${state.transform.freeAngle}deg)`);
+  if (state.transform.flipH) transforms.push('scaleX(-1)');
+  if (state.transform.flipV) transforms.push('scaleY(-1)');
+  wrap.style.transform = transforms.join(' ');
+}
+
+function resetAdjustments() {
+  state.adjustments = getDefaultAdj();
+  document.querySelectorAll('.adj-slider').forEach(slider => {
+    const key = slider.dataset.key;
+    const def = state.adjustments[key] !== undefined ? state.adjustments[key] : 0;
+    slider.value = def;
+    const valEl = slider.closest('.slider-row').querySelector('.slider-val');
+    valEl.textContent = def;
+    valEl.classList.remove('changed');
+  });
+  applyFilters();
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.preset-btn')?.classList.add('active');
+  updateHistogram();
+  showToast('Adjustments reset');
+}
+
+function applyPreset(name, btn) {
+  const preset = PRESETS[name];
+  state.adjustments = Object.assign(getDefaultAdj(), preset);
+  document.querySelectorAll('.adj-slider').forEach(slider => {
+    const key = slider.dataset.key;
+    const val = state.adjustments[key] !== undefined ? state.adjustments[key] : 0;
+    slider.value = val;
+    const valEl = slider.closest('.slider-row').querySelector('.slider-val');
+    valEl.textContent = Math.round(val * 10) / 10;
+    valEl.classList.toggle('changed', val !== 0 && key !== 'opacity');
+  });
+  applyFilters();
+  updateHistogram();
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  showToast(`Preset: ${name}`, 'success');
+  saveHistory(`Preset: ${name}`);
+}
+
+// ============================================================
+// HISTOGRAM
+// ============================================================
+function updateHistogram() {
+  const canvas = document.getElementById('histogram');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0a0a12';
+  ctx.fillRect(0, 0, W, H);
+
+  const img = state.image;
+  if (!img) {
+    ctx.strokeStyle = '#252545';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, H); ctx.bezierCurveTo(W*0.3, H*0.5, W*0.7, H*0.5, W, H*0.1);
+    ctx.stroke();
+    return;
+  }
+
+  const offCanvas = document.createElement('canvas');
+  offCanvas.width = 200; offCanvas.height = 100;
+  const offCtx = offCanvas.getContext('2d');
+  offCtx.drawImage(img, 0, 0, 200, 100);
+  const pixels = offCtx.getImageData(0, 0, 200, 100).data;
+
+  const r = new Array(256).fill(0), g = new Array(256).fill(0), b = new Array(256).fill(0);
+  for (let i = 0; i < pixels.length; i += 4) {
+    r[pixels[i]]++;
+    g[pixels[i+1]]++;
+    b[pixels[i+2]]++;
+  }
+
+  const maxV = Math.max(...r, ...g, ...b);
+  const drawChannel = (data, color) => {
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 256; i++) {
+      const x = (i / 255) * W;
+      const y = H - (data[i] / maxV) * H * 0.9;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  };
+
+  drawChannel(r, 'rgba(255,100,80,0.7)');
+  drawChannel(g, 'rgba(80,200,80,0.7)');
+  drawChannel(b, 'rgba(80,130,255,0.7)');
+}
+
+// ============================================================
+// IMAGE LOADING
+// ============================================================
+function triggerUpload() { document.getElementById('fileInput').click(); }
+
+function handleImageFile(file) {
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showToast('Please upload an image file', 'error'); return; }
+  
+  showLoading('Loading image...');
+  const url = URL.createObjectURL(file);
+  state.fileName = file.name.replace(/\.[^.]+$/, '');
+  
+  const img = new Image();
+  img.onload = () => {
+    state.image = img;
+    state.imageOrigSrc = url;
+    const previewImg = document.getElementById('previewImg');
+    previewImg.src = url;
+    previewImg.onload = () => {
+      document.getElementById('uploadZone').style.display = 'none';
+      const wrap = document.getElementById('imagePreviewWrap');
+      wrap.style.display = 'block';
+      
+      // Set draw canvas size
+      const dc = document.getElementById('drawCanvas');
+      dc.width = img.naturalWidth;
+      dc.height = img.naturalHeight;
+      dc.style.width = previewImg.offsetWidth + 'px';
+      dc.style.height = previewImg.offsetHeight + 'px';
+      
+      document.getElementById('imgInfo').textContent = `${img.naturalWidth} × ${img.naturalHeight} px | ${(file.size/1024/1024).toFixed(2)} MB`;
+      document.getElementById('downloadBtn').style.display = '';
+      document.getElementById('resetBtn').style.display = '';
+      document.getElementById('downloadBar').style.display = 'flex';
+      document.getElementById('resizeW').value = img.naturalWidth;
+      document.getElementById('resizeH').value = img.naturalHeight;
+      
+      fitToScreen();
+      updatePresetPreviews();
+      updateHistogram();
+      saveHistory('Loaded image');
+      hideLoading();
+      showToast('Image loaded!', 'success');
+    };
+  };
+  img.onerror = () => { hideLoading(); showToast('Failed to load image', 'error'); };
+  img.src = url;
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) handleImageFile(file);
+  else if (file && file.type === 'application/pdf') { setMode('pdf'); handlePdfFile(file); }
+  else showToast('Unsupported file type', 'error');
+}
+
+// ============================================================
+// ZOOM
+// ============================================================
+function setZoom(z) {
+  state.zoom = Math.max(0.1, Math.min(10, z));
+  const wrap = document.getElementById('imagePreviewWrap');
+  wrap.style.transform = buildTransformStyle();
+  document.getElementById('zoomVal').textContent = Math.round(state.zoom * 100) + '%';
+}
+
+function buildTransformStyle() {
+  let t = `scale(${state.zoom})`;
+  const r = state.transform.rotation + state.transform.freeAngle;
+  if (r !== 0) t += ` rotate(${r}deg)`;
+  if (state.transform.flipH) t += ' scaleX(-1)';
+  if (state.transform.flipV) t += ' scaleY(-1)';
+  return t;
+}
+
+function zoomBy(delta) { setZoom(state.zoom + delta); }
+
+function fitToScreen() {
+  const viewport = document.getElementById('canvasViewport');
+  const img = state.image;
+  if (!img) return;
+  const vw = viewport.clientWidth - 60, vh = viewport.clientHeight - 60;
+  const scaleW = vw / img.naturalWidth, scaleH = vh / img.naturalHeight;
+  setZoom(Math.min(scaleW, scaleH, 1));
+}
+
+// ============================================================
+// TRANSFORMS
+// ============================================================
+function rotate(degrees) {
+  state.transform.rotation = (state.transform.rotation + degrees + 360) % 360;
+  const previewImg = document.getElementById('previewImg');
+  const wrap = document.getElementById('imagePreviewWrap');
+  wrap.style.transform = buildTransformStyle();
+  saveHistory(`Rotated ${degrees}°`);
+  showToast(`Rotated ${degrees}°`);
+}
+
+function flipH() {
+  state.transform.flipH = !state.transform.flipH;
+  document.getElementById('imagePreviewWrap').style.transform = buildTransformStyle();
+  saveHistory('Flipped horizontal');
+  showToast('Flipped horizontal');
+}
+
+function flipV() {
+  state.transform.flipV = !state.transform.flipV;
+  document.getElementById('imagePreviewWrap').style.transform = buildTransformStyle();
+  saveHistory('Flipped vertical');
+  showToast('Flipped vertical');
+}
+
+function previewFreeRotation(val) {
+  state.transform.freeAngle = parseFloat(val);
+  document.getElementById('freeRotateVal').textContent = val + '°';
+  document.getElementById('imagePreviewWrap').style.transform = buildTransformStyle();
+}
+
+function applyFreeRotation() {
+  state.transform.rotation = (state.transform.rotation + state.transform.freeAngle + 360) % 360;
+  state.transform.freeAngle = 0;
+  document.getElementById('freeRotate').value = 0;
+  document.getElementById('freeRotateVal').textContent = '0°';
+  document.getElementById('imagePreviewWrap').style.transform = buildTransformStyle();
+  saveHistory(`Applied free rotation`);
+  showToast('Rotation applied');
+}
+
+function applyResize() {
+  const w = parseInt(document.getElementById('resizeW').value);
+  const h = parseInt(document.getElementById('resizeH').value);
+  if (!w || !h || w < 1 || h < 1) { showToast('Invalid dimensions', 'error'); return; }
+  if (!state.image) return;
+  
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(state.image, 0, 0, w, h);
+  const newSrc = canvas.toDataURL();
+  const img = new Image();
+  img.onload = () => {
+    state.image = img;
+    document.getElementById('previewImg').src = newSrc;
+    document.getElementById('imgInfo').textContent = `${w} × ${h} px`;
+    const dc = document.getElementById('drawCanvas');
+    dc.width = w; dc.height = h;
+    updatePresetPreviews();
+    showToast(`Resized to ${w}×${h}`);
+    saveHistory(`Resized to ${w}×${h}`);
+  };
+  img.src = newSrc;
+}
+
+// ============================================================
+// TOOLS
+// ============================================================
+function setTool(tool, btn) {
+  state.tool = tool;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  
+  const wrap = document.getElementById('imagePreviewWrap');
+  wrap.className = 'tool-' + tool;
+  
+  document.getElementById('textToolUI').classList.toggle('active', tool === 'text');
+  document.getElementById('drawToolUI').classList.toggle('active', tool === 'draw' || tool === 'erase');
+  
+  const dc = document.getElementById('drawCanvas');
+  dc.style.pointerEvents = (tool === 'draw' || tool === 'erase') ? 'all' : 'none';
+}
+
+function setupDrawCanvas() {
+  const dc = document.getElementById('drawCanvas');
+  let drawing = false, lastX, lastY;
+  
+  dc.addEventListener('mousedown', e => {
+    if (state.tool !== 'draw' && state.tool !== 'erase') return;
+    drawing = true;
+    const rect = dc.getBoundingClientRect();
+    const scaleX = dc.width / rect.width, scaleY = dc.height / rect.height;
+    lastX = (e.clientX - rect.left) * scaleX;
+    lastY = (e.clientY - rect.top) * scaleY;
+  });
+  
+  dc.addEventListener('mousemove', e => {
+    if (!drawing) return;
+    const rect = dc.getBoundingClientRect();
+    const scaleX = dc.width / rect.width, scaleY = dc.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    const ctx = dc.getContext('2d');
+    const opacity = (document.getElementById('brushOpacity').value || 100) / 100;
+    
+    ctx.globalCompositeOperation = state.tool === 'erase' ? 'destination-out' : 'source-over';
+    ctx.globalAlpha = opacity;
+    ctx.strokeStyle = state.brushColor;
+    ctx.lineWidth = state.brushSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    lastX = x; lastY = y;
+  });
+  
+  dc.addEventListener('mouseup', () => { drawing = false; });
+  dc.addEventListener('mouseleave', () => { drawing = false; });
+  
+  // Touch
+  dc.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (state.tool !== 'draw' && state.tool !== 'erase') return;
+    drawing = true;
+    const rect = dc.getBoundingClientRect();
+    const t = e.touches[0];
+    const scaleX = dc.width / rect.width, scaleY = dc.height / rect.height;
+    lastX = (t.clientX - rect.left) * scaleX;
+    lastY = (t.clientY - rect.top) * scaleY;
+  }, {passive: false});
+  
+  dc.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (!drawing) return;
+    const rect = dc.getBoundingClientRect();
+    const t = e.touches[0];
+    const scaleX = dc.width / rect.width, scaleY = dc.height / rect.height;
+    const x = (t.clientX - rect.left) * scaleX;
+    const y = (t.clientY - rect.top) * scaleY;
+    const ctx = dc.getContext('2d');
+    ctx.globalCompositeOperation = state.tool === 'erase' ? 'destination-out' : 'source-over';
+    ctx.globalAlpha = (document.getElementById('brushOpacity').value || 100) / 100;
+    ctx.strokeStyle = state.brushColor;
+    ctx.lineWidth = state.brushSize;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(x, y); ctx.stroke();
+    lastX = x; lastY = y;
+  }, {passive: false});
+  
+  dc.addEventListener('touchend', () => { drawing = false; });
+}
+
+function updateBrushSize(v) {
+  state.brushSize = parseInt(v);
+  document.getElementById('brushSizeVal').textContent = v;
+}
+
+function clearDrawing() {
+  const dc = document.getElementById('drawCanvas');
+  const ctx = dc.getContext('2d');
+  ctx.clearRect(0, 0, dc.width, dc.height);
+  showToast('Drawing cleared');
+}
+
+function flattenDrawing() {
+  if (!state.image) return;
+  const canvas = document.createElement('canvas');
+  canvas.width = state.image.naturalWidth;
+  canvas.height = state.image.naturalHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.filter = buildFilterString(state.adjustments);
+  
+  const r = (state.transform.rotation + state.transform.freeAngle) * Math.PI / 180;
+  ctx.save();
+  ctx.translate(canvas.width/2, canvas.height/2);
+  ctx.rotate(r);
+  if (state.transform.flipH) ctx.scale(-1, 1);
+  if (state.transform.flipV) ctx.scale(1, -1);
+  ctx.drawImage(state.image, -canvas.width/2, -canvas.height/2);
+  ctx.restore();
+  
+  ctx.filter = 'none';
+  ctx.drawImage(document.getElementById('drawCanvas'), 0, 0);
+  
+  const newSrc = canvas.toDataURL('image/png');
+  const img = new Image();
+  img.onload = () => {
+    state.image = img;
+    document.getElementById('previewImg').src = newSrc;
+    state.transform = { rotation: 0, flipH: false, flipV: false, freeAngle: 0 };
+    state.adjustments = getDefaultAdj();
+    clearDrawing();
+    document.querySelectorAll('.adj-slider').forEach(s => { s.value = state.adjustments[s.dataset.key] || 0; });
+    applyFilters();
+    updatePresetPreviews();
+    showToast('Drawing flattened!', 'success');
+    saveHistory('Flattened drawing');
+  };
+  img.src = newSrc;
+}
+
+function setupColorSwatches() {
+  document.querySelectorAll('#textColorRow .color-swatch').forEach(s => {
+    s.addEventListener('click', () => {
+      document.querySelectorAll('#textColorRow .color-swatch').forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+      state.textColor = s.dataset.color;
+    });
+  });
+  document.getElementById('textColorCustom').addEventListener('input', e => { state.textColor = e.target.value; });
+  
+  document.querySelectorAll('#brushColorRow .color-swatch').forEach(s => {
+    s.addEventListener('click', () => {
+      document.querySelectorAll('#brushColorRow .color-swatch').forEach(x => x.classList.remove('active'));
+      s.classList.add('active');
+      state.brushColor = s.dataset.color;
+    });
+  });
+  document.getElementById('brushColorCustom').addEventListener('input', e => { state.brushColor = e.target.value; });
+}
+
+function addTextOverlay() {
+  const text = document.getElementById('textInput').value;
+  if (!text || !state.image) { showToast('Enter text first', 'error'); return; }
+  
+  // Draw text onto the draw canvas
+  const dc = document.getElementById('drawCanvas');
+  const ctx = dc.getContext('2d');
+  const size = document.getElementById('textSize').value;
+  const font = document.getElementById('textFont').value;
+  
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.font = `bold ${size}px ${font}`;
+  ctx.fillStyle = state.textColor;
+  ctx.textAlign = 'center';
+  ctx.fillText(text, dc.width / 2, dc.height / 2);
+  showToast('Text added — use Draw mode to reposition');
+  saveHistory(`Added text: "${text}"`);
+}
+
+// ============================================================
+// DOWNLOAD
+// ============================================================
+function setDownloadFormat(fmt, btn) {
+  state.downloadFormat = fmt;
+  document.querySelectorAll('.dl-format-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function triggerDownload() { downloadImage(); }
+
+function downloadImage() {
+  if (!state.image) { showToast('No image loaded', 'error'); return; }
+  showLoading('Exporting...');
+  
+  setTimeout(() => {
+    try {
+      const img = state.image;
+      const W = img.naturalWidth, H = img.naturalHeight;
+      const rotation = state.transform.rotation + state.transform.freeAngle;
+      const rad = rotation * Math.PI / 180;
+      
+      // Calculate canvas size for rotation
+      const cos = Math.abs(Math.cos(rad)), sin = Math.abs(Math.sin(rad));
+      let cw = W, ch = H;
+      if (rotation % 180 !== 0) { cw = Math.round(H * sin + W * cos); ch = Math.round(H * cos + W * sin); }
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = cw; canvas.height = ch;
+      const ctx = canvas.getContext('2d');
+      
+      ctx.filter = buildFilterString(state.adjustments);
+      ctx.save();
+      ctx.translate(cw / 2, ch / 2);
+      ctx.rotate(rad);
+      if (state.transform.flipH) ctx.scale(-1, 1);
+      if (state.transform.flipV) ctx.scale(1, -1);
+      ctx.drawImage(img, -W / 2, -H / 2, W, H);
+      ctx.restore();
+      ctx.filter = 'none';
+      
+      // Draw canvas overlay
+      ctx.drawImage(document.getElementById('drawCanvas'), 0, 0, cw, ch);
+      
+      // Pixel effects (temperature, vignette, grain, fade, chroma)
+      applyPixelEffects(ctx, cw, ch, state.adjustments);
+      
+      const fmt = state.downloadFormat;
+      const mime = fmt === 'jpeg' ? 'image/jpeg' : fmt === 'webp' ? 'image/webp' : 'image/png';
+      const quality = state.downloadQuality;
+      
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${state.fileName || 'pedit-export'}.${fmt === 'jpeg' ? 'jpg' : fmt}`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        hideLoading();
+        showToast('Downloaded!', 'success');
+      }, mime, quality);
+      
+    } catch(e) {
+      hideLoading();
+      showToast('Export failed: ' + e.message, 'error');
+      console.error(e);
+    }
+  }, 50);
+}
+
+function applyPixelEffects(ctx, W, H, adj) {
+  const needsPixel = adj.temperature !== 0 || adj.tint !== 0 || adj.vignette > 0 || 
+                     adj.grain > 0 || adj.fade > 0 || adj.chroma > 0 ||
+                     adj.highlights !== 0 || adj.shadows !== 0 || adj.whites !== 0 || adj.blacks !== 0;
+  if (!needsPixel) return;
+  
+  const imageData = ctx.getImageData(0, 0, W, H);
+  const data = imageData.data;
+  const temp = adj.temperature / 100;
+  const tint = adj.tint / 100;
+  const fade = adj.fade / 100;
+  const grain = adj.grain / 100;
+  const highlights = adj.highlights / 100;
+  const shadows = adj.shadows / 100;
+  const whites = adj.whites / 100;
+  const blacks = adj.blacks / 100;
+  
+  for (let i = 0; i < data.length; i += 4) {
+    let r = data[i], g = data[i+1], b = data[i+2];
+    
+    // Temperature (warm/cool)
+    if (temp > 0) { r = Math.min(255, r + temp * 25); b = Math.max(0, b - temp * 25); }
+    else { r = Math.max(0, r + temp * 25); b = Math.min(255, b - temp * 25); }
+    
+    // Tint (green/magenta)
+    if (tint > 0) { g = Math.min(255, g + tint * 20); }
+    else { g = Math.max(0, g - Math.abs(tint) * 20); r = Math.min(255, r + Math.abs(tint) * 10); }
+    
+    // Fade (lift)
+    if (fade > 0) {
+      r = r + (120 - r) * fade * 0.4;
+      g = g + (115 - g) * fade * 0.4;
+      b = b + (105 - b) * fade * 0.4;
+    }
+    
+    // Highlights (brighten only bright areas)
+    if (highlights !== 0) {
+      const lum = (r + g + b) / 3;
+      const factor = lum > 128 ? ((lum - 128) / 127) : 0;
+      r = r + highlights * factor * 40;
+      g = g + highlights * factor * 40;
+      b = b + highlights * factor * 40;
+    }
+    
+    // Shadows (adjust only dark areas)
+    if (shadows !== 0) {
+      const lum = (r + g + b) / 3;
+      const factor = lum < 128 ? ((128 - lum) / 128) : 0;
+      r = r + shadows * factor * 40;
+      g = g + shadows * factor * 40;
+      b = b + shadows * factor * 40;
+    }
+    
+    // Whites / Blacks
+    if (whites !== 0) { r += whites * 20; g += whites * 20; b += whites * 20; }
+    if (blacks !== 0) { r += blacks * 15; g += blacks * 15; b += blacks * 15; }
+    
+    // Grain
+    if (grain > 0) {
+      const noise = (Math.random() - 0.5) * grain * 45;
+      r += noise; g += noise; b += noise;
+    }
+    
+    data[i]   = Math.max(0, Math.min(255, Math.round(r)));
+    data[i+1] = Math.max(0, Math.min(255, Math.round(g)));
+    data[i+2] = Math.max(0, Math.min(255, Math.round(b)));
+  }
+  ctx.putImageData(imageData, 0, 0);
+  
+  // Vignette
+  if (adj.vignette > 0) {
+    const v = adj.vignette / 100;
+    const grd = ctx.createRadialGradient(W/2, H/2, Math.min(W,H)*0.3, W/2, H/2, Math.max(W,H)*0.75);
+    grd.addColorStop(0, 'rgba(0,0,0,0)');
+    grd.addColorStop(1, `rgba(0,0,0,${v*0.85})`);
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, W, H);
+  }
+  
+  // Chromatic aberration
+  if (adj.chroma > 0) {
+    const offset = Math.round(adj.chroma * 0.8);
+    const imgD = ctx.getImageData(0, 0, W, H);
+    const out = ctx.createImageData(W, H);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 4;
+        const ri = (y * W + Math.max(0, x - offset)) * 4;
+        const bi = (y * W + Math.min(W-1, x + offset)) * 4;
+        out.data[i]   = imgD.data[ri];
+        out.data[i+1] = imgD.data[i+1];
+        out.data[i+2] = imgD.data[bi+2];
+        out.data[i+3] = imgD.data[i+3];
+      }
+    }
+    ctx.putImageData(out, 0, 0);
+  }
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+function saveHistory(label) {
+  state.history = state.history.slice(0, state.historyIndex + 1);
+  state.history.push({ label, adj: JSON.parse(JSON.stringify(state.adjustments)), transform: JSON.parse(JSON.stringify(state.transform)) });
+  if (state.history.length > 30) state.history.shift();
+  state.historyIndex = state.history.length - 1;
+  updateHistoryUI();
+}
+
+function updateHistoryUI() {
+  const list = document.getElementById('historyList');
+  list.innerHTML = '';
+  state.history.forEach((h, i) => {
+    const el = document.createElement('div');
+    el.style.cssText = `padding:5px 8px;border-radius:4px;font-size:12px;cursor:pointer;color:${i === state.historyIndex ? 'var(--primary)' : 'var(--text2)'};background:${i === state.historyIndex ? 'rgba(124,106,247,0.12)' : 'transparent'};border:1px solid ${i === state.historyIndex ? 'rgba(124,106,247,0.3)' : 'transparent'};`;
+    el.textContent = `${i+1}. ${h.label}`;
+    el.addEventListener('click', () => jumpToHistory(i));
+    list.appendChild(el);
+  });
+  document.getElementById('undoBtn').disabled = state.historyIndex <= 0;
+  document.getElementById('redoBtn').disabled = state.historyIndex >= state.history.length - 1;
+}
+
+function jumpToHistory(i) {
+  const h = state.history[i];
+  state.historyIndex = i;
+  state.adjustments = JSON.parse(JSON.stringify(h.adj));
+  state.transform = JSON.parse(JSON.stringify(h.transform));
+  document.querySelectorAll('.adj-slider').forEach(s => {
+    const v = state.adjustments[s.dataset.key];
+    if (v !== undefined) { s.value = v; s.closest('.slider-row').querySelector('.slider-val').textContent = Math.round(v*10)/10; }
+  });
+  applyFilters();
+  updateHistoryUI();
+}
+
+function undoAction() { if (state.historyIndex > 0) jumpToHistory(state.historyIndex - 1); }
+function redoAction() { if (state.historyIndex < state.history.length - 1) jumpToHistory(state.historyIndex + 1); }
+
+// ============================================================
+// PDF
+// ============================================================
+function triggerPdfUpload() { document.getElementById('pdfInput').click(); }
+
+function handlePdfDrop(e) {
+  e.preventDefault();
+  document.getElementById('pdfUploadZone').style.borderColor = 'var(--border2)';
+  const file = e.dataTransfer.files[0];
+  if (file && file.type === 'application/pdf') handlePdfFile(file);
+  else showToast('Please drop a PDF file', 'error');
+}
+
+async function handlePdfFile(file) {
+  if (!file) return;
+  showLoading('Loading PDF...');
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    state.pdfDoc = pdf;
+    state.pdfTotalPages = pdf.numPages;
+    state.pdfCurrentPage = 1;
+    state.pdfRotation = 0;
+    state.fileName = file.name.replace('.pdf', '');
+    
+    document.getElementById('pdfTotalPages').textContent = pdf.numPages;
+    document.getElementById('pdfPageInput').max = pdf.numPages;
+    document.getElementById('pdfPrevBtn').disabled = true;
+    document.getElementById('pdfNextBtn').disabled = pdf.numPages <= 1;
+    document.getElementById('pdfInfoPanel').textContent = `Pages: ${pdf.numPages}\nFile: ${file.name}\nSize: ${(file.size/1024).toFixed(0)} KB`;
+    
+    await buildPdfThumbnails();
+    await renderPdfPage(1);
+    
+    document.getElementById('pdfUploadZone').style.display = 'none';
+    document.getElementById('pdfCanvas').style.display = 'block';
+    document.getElementById('downloadBtn').style.display = '';
+    document.getElementById('resetBtn').style.display = '';
+    hideLoading();
+    showToast(`Loaded ${pdf.numPages} page${pdf.numPages > 1 ? 's' : ''}`, 'success');
+  } catch(e) {
+    hideLoading();
+    showToast('Failed to load PDF: ' + e.message, 'error');
+    console.error(e);
+  }
+}
+
+async function buildPdfThumbnails() {
+  const container = document.getElementById('pdfThumbnails');
+  container.innerHTML = '';
+  const pdf = state.pdfDoc;
+  
+  for (let i = 1; i <= Math.min(pdf.numPages, 50); i++) {
+    const page = await pdf.getPage(i);
+    const vp = page.getViewport({ scale: 0.3, rotation: state.pdfRotation });
+    const thumbDiv = document.createElement('div');
+    thumbDiv.className = 'pdf-thumb' + (i === 1 ? ' active' : '');
+    thumbDiv.dataset.page = i;
+    thumbDiv.addEventListener('click', () => pdfGoToPage(i));
+    const c = document.createElement('canvas');
+    c.width = vp.width; c.height = vp.height;
+    await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+    const num = document.createElement('div');
+    num.className = 'pdf-thumb-num';
+    num.textContent = i;
+    thumbDiv.appendChild(c);
+    thumbDiv.appendChild(num);
+    container.appendChild(thumbDiv);
+  }
+}
+
+async function renderPdfPage(pageNum) {
+  if (!state.pdfDoc) return;
+  const page = await state.pdfDoc.getPage(pageNum);
+  const vp = page.getViewport({ scale: state.pdfZoom, rotation: state.pdfRotation });
+  const canvas = document.getElementById('pdfCanvas');
+  canvas.width = vp.width;
+  canvas.height = vp.height;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'white'; ctx.fillRect(0, 0, vp.width, vp.height);
+  await page.render({ canvasContext: ctx, viewport: vp }).promise;
+  
+  document.getElementById('pdfPageInput').value = pageNum;
+  document.getElementById('pdfPrevBtn').disabled = pageNum <= 1;
+  document.getElementById('pdfNextBtn').disabled = pageNum >= state.pdfTotalPages;
+  document.querySelectorAll('.pdf-thumb').forEach(t => t.classList.toggle('active', parseInt(t.dataset.page) === pageNum));
+  
+  const activeThumb = document.querySelector(`.pdf-thumb[data-page="${pageNum}"]`);
+  if (activeThumb) activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function pdfPrevPage() {
+  if (state.pdfCurrentPage > 1) { state.pdfCurrentPage--; await renderPdfPage(state.pdfCurrentPage); }
+}
+async function pdfNextPage() {
+  if (state.pdfCurrentPage < state.pdfTotalPages) { state.pdfCurrentPage++; await renderPdfPage(state.pdfCurrentPage); }
+}
+async function pdfGoToPage(n) {
+  const page = Math.max(1, Math.min(state.pdfTotalPages, parseInt(n)));
+  if (isNaN(page)) return;
+  state.pdfCurrentPage = page;
+  await renderPdfPage(page);
+}
+
+async function pdfZoom(delta) {
+  state.pdfZoom = Math.max(0.5, Math.min(4, state.pdfZoom + delta));
+  document.getElementById('pdfZoomVal').textContent = Math.round(state.pdfZoom * 100) + '%';
+  await renderPdfPage(state.pdfCurrentPage);
+}
+
+async function rotatePdfPage() {
+  state.pdfRotation = (state.pdfRotation + 90) % 360;
+  document.getElementById('pdfRotSelect').value = state.pdfRotation;
+  await renderPdfPage(state.pdfCurrentPage);
+  showToast(`Page rotated to ${state.pdfRotation}°`);
+}
+
+async function setPdfRotation(val) {
+  state.pdfRotation = parseInt(val);
+  await renderPdfPage(state.pdfCurrentPage);
+}
+
+function downloadCurrentPdfPage() {
+  const canvas = document.getElementById('pdfCanvas');
+  if (!canvas || canvas.style.display === 'none') { showToast('No PDF loaded', 'error'); return; }
+  const scale = parseFloat(document.getElementById('pdfExportScale').value) || 2;
+  
+  const exportCanvas = document.createElement('canvas');
+  exportCanvas.width = canvas.width * scale / state.pdfZoom;
+  exportCanvas.height = canvas.height * scale / state.pdfZoom;
+  const ctx = exportCanvas.getContext('2d');
+  ctx.scale(scale / state.pdfZoom, scale / state.pdfZoom);
+  ctx.drawImage(canvas, 0, 0);
+  
+  exportCanvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${state.fileName}-page${state.pdfCurrentPage}.png`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Page downloaded!', 'success');
+  }, 'image/png');
+}
+
+async function downloadPdfAllPages() {
+  if (!state.pdfDoc) { showToast('No PDF loaded', 'error'); return; }
+  showLoading('Exporting all pages...');
+  const scale = parseFloat(document.getElementById('pdfExportScale').value) || 2;
+  
+  for (let i = 1; i <= state.pdfTotalPages; i++) {
+    const page = await state.pdfDoc.getPage(i);
+    const vp = page.getViewport({ scale, rotation: state.pdfRotation });
+    const canvas = document.createElement('canvas');
+    canvas.width = vp.width; canvas.height = vp.height;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'white'; ctx.fillRect(0, 0, vp.width, vp.height);
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    
+    await new Promise(res => canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `${state.fileName}-page${i}.png`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setTimeout(res, 100);
+    }, 'image/png'));
+  }
+  hideLoading();
+  showToast(`${state.pdfTotalPages} pages downloaded!`, 'success');
+}
+
+function extractPageRange() {
+  const ui = document.getElementById('extractRangeUI');
+  ui.style.display = ui.style.display === 'none' ? 'block' : 'none';
+}
+
+async function doExtractPages() {
+  if (!state.pdfDoc) { showToast('No PDF loaded', 'error'); return; }
+  const from = parseInt(document.getElementById('extractFrom').value) || 1;
+  const to = parseInt(document.getElementById('extractTo').value) || state.pdfTotalPages;
+  
+  if (from < 1 || to > state.pdfTotalPages || from > to) { showToast('Invalid page range', 'error'); return; }
+  showLoading('Extracting pages...');
+  const scale = parseFloat(document.getElementById('pdfExportScale').value) || 2;
+  
+  for (let i = from; i <= to; i++) {
+    const page = await state.pdfDoc.getPage(i);
+    const vp = page.getViewport({ scale, rotation: state.pdfRotation });
+    const canvas = document.createElement('canvas');
+    canvas.width = vp.width; canvas.height = vp.height;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'white'; ctx.fillRect(0, 0, vp.width, vp.height);
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    
+    await new Promise(res => canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `${state.fileName}-page${i}.png`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url); setTimeout(res, 120);
+    }, 'image/png'));
+  }
+  hideLoading();
+  showToast(`Pages ${from}-${to} extracted!`, 'success');
+}
+
+// Merge PDFs
+function triggerMergeUpload() { document.getElementById('mergeInput').click(); }
+function handleMergeFiles(files) {
+  state.pdfMergeFiles = Array.from(files);
+  const list = document.getElementById('mergeFileList');
+  list.innerHTML = '';
+  state.pdfMergeFiles.forEach(f => {
+    const el = document.createElement('div');
+    el.className = 'merge-file-item';
+    el.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="var(--primary)" stroke="none"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>${f.name}`;
+    list.appendChild(el);
+  });
+  document.getElementById('mergeBtn').style.display = state.pdfMergeFiles.length > 1 ? 'flex' : 'none';
+}
+
+async function mergePDFs() {
+  if (state.pdfMergeFiles.length < 2) { showToast('Select at least 2 PDFs', 'error'); return; }
+  showLoading('Merging PDFs...');
+  
+  try {
+    const scale = parseFloat(document.getElementById('pdfExportScale').value) || 2;
+    const allCanvases = [];
+    
+    for (const file of state.pdfMergeFiles) {
+      const buf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const vp = page.getViewport({ scale });
+        const c = document.createElement('canvas');
+        c.width = vp.width; c.height = vp.height;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = 'white'; ctx.fillRect(0,0,vp.width,vp.height);
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+        allCanvases.push(c);
+      }
+    }
+    
+    // Download all as numbered PNG images
+    for (let i = 0; i < allCanvases.length; i++) {
+      await new Promise(res => allCanvases[i].toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `merged-page${i+1}.png`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(url); setTimeout(res, 120);
+      }, 'image/png'));
+    }
+    
+    hideLoading();
+    showToast(`Merged ${allCanvases.length} pages downloaded!`, 'success');
+  } catch(e) {
+    hideLoading();
+    showToast('Merge failed: ' + e.message, 'error');
+  }
+}
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+function setMode(mode) {
+  state.mode = mode;
+  document.getElementById('imageEditor').style.display = mode === 'image' ? 'flex' : 'none';
+  document.getElementById('pdfEditor').style.display = mode === 'pdf' ? 'flex' : 'none';
+  document.getElementById('downloadBar').style.display = mode === 'image' && state.image ? 'flex' : 'none';
+  document.getElementById('tabImage').classList.toggle('active', mode === 'image');
+  document.getElementById('tabPdf').classList.toggle('active', mode === 'pdf');
+  
+  const mobilNav = document.getElementById('mobilePanelNav');
+  if (window.innerWidth <= 700) {
+    mobilNav.style.display = mode === 'image' ? 'flex' : 'none';
+    if (mode === 'image') showMobilePanel('canvas', document.querySelector('.mobile-tab[data-panel="canvas"]'));
+  }
+}
+
+function toggleAccordion(header) {
+  header.classList.toggle('open');
+  const body = header.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+function switchLeftTab(tabName, el) {
+  document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.panel-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('tab-' + tabName).classList.add('active');
+}
+
+function showMobilePanel(panel, tab) {
+  document.querySelectorAll('.mobile-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  
+  const left = document.getElementById('leftPanel');
+  const right = document.getElementById('rightPanel');
+  
+  left.classList.remove('mobile-show');
+  right.classList.remove('mobile-show');
+  
+  if (panel === 'left') left.classList.add('mobile-show');
+  if (panel === 'right') right.classList.add('mobile-show');
+}
+
+function resetEditor() {
+  if (state.mode === 'image') {
+    resetAdjustments();
+    state.transform = { rotation: 0, flipH: false, flipV: false, freeAngle: 0 };
+    document.getElementById('imagePreviewWrap').style.transform = '';
+    document.getElementById('freeRotate').value = 0;
+    document.getElementById('freeRotateVal').textContent = '0°';
+    clearDrawing();
+    showToast('Editor reset', 'success');
+  } else {
+    state.pdfDoc = null;
+    state.pdfCurrentPage = 1;
+    state.pdfTotalPages = 0;
+    state.pdfRotation = 0;
+    document.getElementById('pdfCanvas').style.display = 'none';
+    document.getElementById('pdfUploadZone').style.display = 'flex';
+    document.getElementById('pdfThumbnails').innerHTML = '<div style="text-align:center;color:var(--text3);font-size:12px;padding:20px;">No PDF loaded</div>';
+    document.getElementById('pdfTotalPages').textContent = '0';
+    document.getElementById('pdfPrevBtn').disabled = true;
+    document.getElementById('pdfNextBtn').disabled = true;
+    document.getElementById('downloadBtn').style.display = 'none';
+    document.getElementById('resetBtn').style.display = 'none';
+    showToast('PDF cleared');
+  }
+}
+
+function showLoading(msg) {
+  const el = document.getElementById('loadingOverlay');
+  el.querySelector('.loader-text').textContent = msg || 'Processing...';
+  el.style.display = 'flex';
+}
+function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
+
+let toastTimer;
+function showToast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 2800);
+}
+
+function handleKeyboard(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'z') { e.preventDefault(); undoAction(); }
+    if (e.key === 'y') { e.preventDefault(); redoAction(); }
+    if (e.key === 's') { e.preventDefault(); if (state.mode === 'image' && state.image) downloadImage(); }
+    if (e.key === 'o') { e.preventDefault(); triggerUpload(); }
+    if (e.key === '=' || e.key === '+') { e.preventDefault(); if (state.mode === 'image') zoomBy(0.25); else pdfZoom(0.25); }
+    if (e.key === '-') { e.preventDefault(); if (state.mode === 'image') zoomBy(-0.25); else pdfZoom(-0.25); }
+  }
+  if (e.key === 'ArrowLeft' && state.mode === 'pdf') pdfPrevPage();
+  if (e.key === 'ArrowRight' && state.mode === 'pdf') pdfNextPage();
+  if (e.key === 'f' && state.mode === 'image') fitToScreen();
+}
+
+// ============================================================
+// START
+// ============================================================
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
