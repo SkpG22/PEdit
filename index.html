@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Google tag (gtag.js) --> <script async src="https://www.googletagmanager.com/gtag/js?id=G-32P0WJKWJ4"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-32P0WJKWJ4'); </script>
+  <!-- Google tag (gtag.js) --> <script async src="https://www.googletagmanager.com/gtag/js?id=G-32P0WJKWJ4"></script> <script> window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-32P0WJKWJ4'); </script> <meta charset="UTF-8">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>PEdit — Professional Image &amp; PDF Editor</title>
@@ -514,33 +514,183 @@ input[type=range]::-moz-range-thumb{
 .mob-tab svg{display:block;margin:0 auto 3px;width:18px;height:18px}
 
 /* =====================================================================
-   RESPONSIVE
+   PANEL BACKDROP (mobile overlay tap-to-close)
    ===================================================================== */
-@media(max-width:900px){
-  .left-panel,.right-panel{width:230px;min-width:230px}
-  .pdf-right,.conv-right{width:190px;min-width:190px}
+#panelBackdrop{
+  display:none;position:absolute;inset:0;background:rgba(0,0,0,.55);
+  z-index:15;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)
 }
-@media(max-width:700px){
+#panelBackdrop.show{display:block}
+
+/* Mobile panel close bar */
+.mob-close-bar{
+  display:none;align-items:center;justify-content:space-between;
+  padding:10px 14px;background:var(--panel2);
+  border-bottom:1px solid var(--border);flex-shrink:0;min-height:42px
+}
+.mob-close-bar .mob-panel-title{
+  font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.6px;text-transform:uppercase
+}
+.mob-close-btn{
+  width:28px;height:28px;border-radius:50%;background:var(--border);
+  border:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-size:16px;transition:all .15s;font-family:'Outfit',sans-serif
+}
+.mob-close-btn:hover{background:var(--border2);color:var(--text)}
+@media(max-width:700px),
+      (max-height:600px) and (orientation:portrait),
+      (max-height:500px) and (orientation:landscape){
+  .mob-close-bar{display:flex}
+}
+
+   ===================================================================== */
+@media(max-width:960px){
+  .left-panel,.right-panel{width:220px;min-width:220px}
+  .pdf-right,.conv-right{width:180px;min-width:180px}
+  .conv-sidebar{width:220px;min-width:220px}
+}
+
+/* =====================================================================
+   RESPONSIVE — MOBILE / VERTICAL (≤ 700px  OR  portrait phone)
+   ===================================================================== */
+@media(max-width:700px),(max-height:600px) and (orientation:portrait){
   :root{--pw:100%}
   #app{height:100dvh}
-  #header{gap:5px}
-  .logo-text{font-size:17px}
-  .mode-tab{padding:5px 9px;font-size:12px}
-  .hdr-btn span{display:none}
-  .left-panel,.right-panel{
-    position:absolute;top:0;left:0;right:0;bottom:0;
-    width:100%;min-width:100%;z-index:10;display:none
+
+  /* ── Header compact ── */
+  #header{
+    padding:0 10px;height:46px;min-height:46px;gap:5px;
+    flex-wrap:nowrap;overflow:hidden
   }
-  .left-panel.mob-show,.right-panel.mob-show{display:flex}
+  .logo-text{font-size:16px}
+  .mode-tabs{gap:2px}
+  .mode-tab{padding:4px 8px;font-size:11px;letter-spacing:0}
+  .hdr-btn span{display:none}
+  .hdr-btn{padding:5px 8px}
+  .hdr-btn svg{width:15px;height:15px}
+
+  /* ── editorContainer fills all remaining vertical space ── */
+  #editorContainer{position:relative;overflow:hidden}
+
+  /* ── All side panels become full-screen overlay drawers ── */
+  .left-panel,.right-panel,
+  .pdf-sidebar,.pdf-right,
+  .conv-sidebar,.conv-right{
+    position:absolute;inset:0;
+    width:100% !important;min-width:100% !important;
+    z-index:20;display:none;
+    border:none !important;
+    max-height:100%
+  }
+  .left-panel.mob-show,.right-panel.mob-show,
+  .pdf-sidebar.mob-show,.pdf-right.mob-show,
+  .conv-sidebar.mob-show,.conv-right.mob-show{
+    display:flex
+  }
+
+  /* ── Canvas / main areas fill fully ── */
   .canvas-area{width:100%}
-  .mobile-nav{display:flex}
-  #downloadBar{padding:6px 10px}
+  .pdf-main{width:100%}
+  .conv-center{width:100%}
+
+  /* ── PDF viewer stretches vertically ── */
+  .pdf-viewport{padding:10px;align-items:flex-start}
+  #pdfCanvas{max-width:100%}
+
+  /* ── Convert center fills properly ── */
+  .conv-main{flex-direction:column}
+  .conv-center{flex:1;min-height:0}
+  .conv-viewport{padding:12px}
+  .conv-word-preview{padding:20px;font-size:13px}
+  .conv-pdf-text{padding:16px;font-size:12px}
+  .conv-drop-zone{margin:12px;min-height:200px;gap:10px}
+  .conv-drop-zone .upload-title{font-size:16px}
+
+  /* ── Mobile nav shows for ALL modes ── */
+  .mobile-nav{display:flex !important}
+
+  /* ── Download bar compact ── */
+  #downloadBar{
+    padding:6px 10px;gap:7px;
+    flex-wrap:nowrap;overflow-x:auto
+  }
   .dl-q-wrap{display:none}
-  .pdf-right,.pdf-sidebar,.conv-sidebar,.conv-right{display:none}
-}
-@media(max-width:480px){
+  .dl-lbl{display:none}
+
+  /* ── Upload zone in canvas ── */
+  #uploadZone{width:calc(100% - 24px);height:calc(100% - 24px)}
+  .upload-title{font-size:17px}
+  .upload-sub{font-size:12px}
+
+  /* ── PDF toolbar wraps neatly ── */
+  .pdf-toolbar{gap:5px;padding:6px 10px}
+  .pdf-toolbar .hdr-btn{font-size:11px;padding:4px 7px}
+
+  /* ── Canvas toolbar ── */
+  .canvas-toolbar{padding:6px 10px;gap:6px}
+  .canvas-info{font-size:11px;max-width:160px}
+  .zoom-val{min-width:36px;font-size:11px}
+
+  /* ── Toast moves above bottom nav ── */
+  #toast{bottom:62px}
+
+  /* ── Preset grid ── */
   .presets-grid{grid-template-columns:repeat(3,1fr)}
-  .preset-canvas{height:50px}
+  .preset-canvas{height:52px}
+  .preset-label{font-size:9px}
+
+  /* ── Panel sections scroll without cut-off ── */
+  .panel-section{padding:10px}
+  .adj-scroll{padding:10px}
+}
+
+/* =====================================================================
+   RESPONSIVE — SMALL PHONES (≤ 400px)
+   ===================================================================== */
+@media(max-width:400px){
+  .mode-tab{padding:4px 6px;font-size:10px}
+  .logo-text{font-size:14px}
+  .presets-grid{grid-template-columns:repeat(2,1fr)}
+  .preset-canvas{height:58px}
+  .tools-grid{grid-template-columns:repeat(3,1fr)}
+  .tfm-btns{grid-template-columns:1fr 1fr}
+}
+
+/* =====================================================================
+   LANDSCAPE PHONE (short + wide) — keep panels as side drawers
+   ===================================================================== */
+@media(max-height:500px) and (orientation:landscape){
+  #header{height:40px;min-height:40px;padding:0 8px}
+  .logo-text{font-size:15px}
+  .mode-tab{padding:3px 8px;font-size:11px}
+
+  .left-panel,.right-panel{
+    position:absolute;top:0;bottom:0;
+    width:240px !important;min-width:240px !important;
+    height:100%;z-index:20
+  }
+  .left-panel{left:0;right:auto;display:none}
+  .right-panel{right:0;left:auto;display:none}
+  .left-panel.mob-show{display:flex}
+  .right-panel.mob-show{display:flex}
+
+  .pdf-sidebar,.pdf-right,.conv-sidebar,.conv-right{
+    position:absolute;top:0;bottom:0;
+    width:200px !important;min-width:200px !important;
+    z-index:20;display:none
+  }
+  .pdf-sidebar{left:0}.pdf-right{right:0}
+  .conv-sidebar{left:0}.conv-right{right:0}
+  .pdf-sidebar.mob-show,.pdf-right.mob-show,
+  .conv-sidebar.mob-show,.conv-right.mob-show{display:flex}
+
+  .mobile-nav{display:flex !important}
+  .mob-tab{padding:6px 4px;font-size:9px}
+  .mob-tab svg{width:15px;height:15px;margin-bottom:1px}
+  #toast{bottom:48px}
+  #downloadBar{padding:5px 10px}
+  .dl-q-wrap{display:none}
+  .dl-lbl{display:none}
 }
 </style>
 </head>
@@ -610,6 +760,7 @@ input[type=range]::-moz-range-thumb{
        EDITOR CONTAINER
        ================================================================ -->
   <div id="editorContainer">
+  <div id="panelBackdrop" onclick="closeMobPanel()"></div>
 
     <!-- ==============================================================
          IMAGE EDITOR
@@ -618,6 +769,7 @@ input[type=range]::-moz-range-thumb{
 
       <!-- LEFT PANEL -->
       <aside class="left-panel" id="leftPanel">
+        <div class="mob-close-bar"><span class="mob-panel-title" id="leftPanelTitle">Presets</span><button class="mob-close-btn" onclick="closeMobPanel()" title="Close">×</button></div>
         <div class="panel-tabs" id="leftPanelTabs">
           <div class="panel-tab active" onclick="switchImgTab('presets',this)">Presets</div>
           <div class="panel-tab" onclick="switchImgTab('tools',this)">Tools</div>
@@ -794,6 +946,7 @@ input[type=range]::-moz-range-thumb{
 
       <!-- RIGHT PANEL — ADJUSTMENTS -->
       <aside class="right-panel" id="rightPanel">
+        <div class="mob-close-bar"><span class="mob-panel-title">Adjustments</span><button class="mob-close-btn" onclick="closeMobPanel()" title="Close">×</button></div>
         <div style="padding:10px 12px;border-bottom:1px solid var(--border)">
           <canvas id="histogram" width="246" height="58"></canvas>
         </div>
@@ -873,7 +1026,8 @@ input[type=range]::-moz-range-thumb{
          ============================================================== -->
     <div id="pdfEditor">
       <!-- Thumbnail sidebar -->
-      <div class="pdf-sidebar">
+      <div class="pdf-sidebar" id="pdfSidebar">
+        <div class="mob-close-bar"><span class="mob-panel-title">Pages</span><button class="mob-close-btn" onclick="closeMobPanel()" title="Close">×</button></div>
         <div class="panel-tabs">
           <div class="panel-tab active">Pages</div>
         </div>
@@ -921,7 +1075,8 @@ input[type=range]::-moz-range-thumb{
       </div>
 
       <!-- PDF right panel -->
-      <div class="pdf-right">
+      <div class="pdf-right" id="pdfRight">
+        <div class="mob-close-bar"><span class="mob-panel-title">PDF Tools</span><button class="mob-close-btn" onclick="closeMobPanel()" title="Close">×</button></div>
         <div class="sec-title">PDF Tools</div>
         <button class="pdf-act-btn" onclick="dlAllPdfPages()">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -969,7 +1124,8 @@ input[type=range]::-moz-range-thumb{
       <div class="conv-main">
 
         <!-- Convert sidebar -->
-        <div class="conv-sidebar">
+        <div class="conv-sidebar" id="convSidebar">
+          <div class="mob-close-bar"><span class="mob-panel-title">Convert Options</span><button class="mob-close-btn" onclick="closeMobPanel()" title="Close">×</button></div>
           <div class="panel-tabs">
             <div class="panel-tab active" onclick="switchConvTab('word2pdf',this)">Word→PDF</div>
             <div class="panel-tab" onclick="switchConvTab('pdf2word',this)">PDF→Word</div>
@@ -1064,7 +1220,8 @@ input[type=range]::-moz-range-thumb{
         </div>
 
         <!-- Convert right panel -->
-        <div class="conv-right">
+        <div class="conv-right" id="convRight">
+          <div class="mob-close-bar"><span class="mob-panel-title">Settings</span><button class="mob-close-btn" onclick="closeMobPanel()" title="Close">×</button></div>
           <div class="sec-title">Conversion Options</div>
           <div class="conv-card">
             <div class="conv-card-hdr">Word → PDF</div>
@@ -1147,16 +1304,46 @@ input[type=range]::-moz-range-thumb{
     </button>
   </div>
 
-  <!-- MOBILE BOTTOM NAV (image mode only) -->
+  <!-- MOBILE BOTTOM NAV — all 3 modes -->
   <nav class="mobile-nav" id="mobileNav" style="display:none">
-    <div class="mob-tab active" data-p="left" onclick="showMobPanel('left',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>Presets
+    <!-- Image mode tabs (shown when mode=image) -->
+    <div id="mobNav-image" style="display:flex;width:100%">
+      <div class="mob-tab active" data-p="left" onclick="showMobPanel('left',this,'image')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>Presets
+      </div>
+      <div class="mob-tab" data-p="canvas" onclick="showMobPanel('canvas',this,'image')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Canvas
+      </div>
+      <div class="mob-tab" data-p="tools" onclick="showMobPanel('tools',this,'image')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 9.5-9.5z"/></svg>Tools
+      </div>
+      <div class="mob-tab" data-p="right" onclick="showMobPanel('right',this,'image')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>Adjust
+      </div>
     </div>
-    <div class="mob-tab" data-p="canvas" onclick="showMobPanel('canvas',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Canvas
+    <!-- PDF mode tabs (shown when mode=pdf) -->
+    <div id="mobNav-pdf" style="display:none;width:100%">
+      <div class="mob-tab active" data-p="canvas" onclick="showMobPanel('canvas',this,'pdf')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>View
+      </div>
+      <div class="mob-tab" data-p="thumbs" onclick="showMobPanel('thumbs',this,'pdf')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Pages
+      </div>
+      <div class="mob-tab" data-p="pdftools" onclick="showMobPanel('pdftools',this,'pdf')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 15 21 21 15 21"/><path d="M21 21l-6-6"/><polyline points="3 9 3 3 9 3"/><path d="M3 3l6 6"/></svg>Tools
+      </div>
     </div>
-    <div class="mob-tab" data-p="right" onclick="showMobPanel('right',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>Adjust
+    <!-- Convert mode tabs (shown when mode=convert) -->
+    <div id="mobNav-convert" style="display:none;width:100%">
+      <div class="mob-tab active" data-p="convopts" onclick="showMobPanel('convopts',this,'convert')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Options
+      </div>
+      <div class="mob-tab" data-p="convpreview" onclick="showMobPanel('convpreview',this,'convert')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Preview
+      </div>
+      <div class="mob-tab" data-p="convsettings" onclick="showMobPanel('convsettings',this,'convert')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>Settings
+      </div>
     </div>
   </nav>
 
@@ -1315,8 +1502,8 @@ function setMode(m){
   document.getElementById('openBtn').style.display=m==='convert'?'none':'';
   document.getElementById('saveBtn').style.display=(m==='image'&&S.img)||(m==='pdf'&&S.pdfDoc)?'':'none';
   document.getElementById('resetBtn').style.display=(m==='image'&&S.img)||(m==='pdf'&&S.pdfDoc)?'':'none';
-  const isMobile=window.innerWidth<=700;
-  document.getElementById('mobileNav').style.display=(isMobile&&m==='image')?'flex':'none';
+  // Update bottom nav visibility for correct mode
+  updateMobNav(m);
 }
 
 /* =============================================================
@@ -2395,10 +2582,14 @@ function toggleAcc(hdr){
 }
 
 function switchImgTab(name,el){
-  // Scope to left panel only
   const lp=document.getElementById('leftPanel');
   lp.querySelectorAll('.panel-tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
+  if(el){ el.classList.add('active'); }
+  else{
+    const map={presets:0,tools:1,history:2};
+    const tabs=lp.querySelectorAll('.panel-tab');
+    if(map[name]!==undefined&&tabs[map[name]]) tabs[map[name]].classList.add('active');
+  }
   lp.querySelectorAll('.panel-section').forEach(s=>s.classList.remove('active'));
   const ts=document.getElementById('tab-'+name);
   if(ts) ts.classList.add('active');
@@ -2414,23 +2605,74 @@ function switchConvTab(name,el){
   S.convTab=name;
 }
 
-function showMobPanel(panel,tab){
-  document.querySelectorAll('.mob-tab').forEach(t=>t.classList.remove('active'));
+function showMobPanel(panel,tab,mode){
+  const m=mode||S.mode;
+  const navRow=document.getElementById('mobNav-'+m);
+  if(navRow) navRow.querySelectorAll('.mob-tab').forEach(t=>t.classList.remove('active'));
   if(tab) tab.classList.add('active');
-  document.getElementById('leftPanel').classList.remove('mob-show');
-  document.getElementById('rightPanel').classList.remove('mob-show');
-  if(panel==='left') document.getElementById('leftPanel').classList.add('mob-show');
-  if(panel==='right') document.getElementById('rightPanel').classList.add('mob-show');
+
+  // Hide all overlays
+  const allOverlays=['leftPanel','rightPanel','pdfSidebar','pdfRight','convSidebar','convRight'];
+  allOverlays.forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.remove('mob-show'); });
+
+  let showBackdrop=false;
+
+  if(m==='image'){
+    if(panel==='left'){ document.getElementById('leftPanel').classList.add('mob-show'); showBackdrop=true; }
+    if(panel==='tools'){ document.getElementById('leftPanel').classList.add('mob-show'); switchImgTab('tools',null); showBackdrop=true; }
+    if(panel==='right'){ document.getElementById('rightPanel').classList.add('mob-show'); showBackdrop=true; }
+  } else if(m==='pdf'){
+    if(panel==='thumbs'){ const el=document.getElementById('pdfSidebar'); if(el){ el.classList.add('mob-show'); showBackdrop=true; } }
+    if(panel==='pdftools'){ const el=document.getElementById('pdfRight'); if(el){ el.classList.add('mob-show'); showBackdrop=true; } }
+  } else if(m==='convert'){
+    if(panel==='convopts'){ const el=document.getElementById('convSidebar'); if(el){ el.classList.add('mob-show'); showBackdrop=true; } }
+    if(panel==='convsettings'){ const el=document.getElementById('convRight'); if(el){ el.classList.add('mob-show'); showBackdrop=true; } }
+  }
+
+  const bd=document.getElementById('panelBackdrop');
+  if(bd) bd.classList.toggle('show', showBackdrop);
 }
 
-function checkMobile(){
-  const mob=window.innerWidth<=700;
-  const nav=document.getElementById('mobileNav');
-  if(nav) nav.style.display=(mob&&S.mode==='image')?'flex':'none';
-  if(mob&&S.mode==='image'){
-    const ct=document.querySelector('.mob-tab[data-p="canvas"]');
-    if(ct) showMobPanel('canvas',ct);
+function closeMobPanel(){
+  const allOverlays=['leftPanel','rightPanel','pdfSidebar','pdfRight','convSidebar','convRight'];
+  allOverlays.forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.remove('mob-show'); });
+  const bd=document.getElementById('panelBackdrop');
+  if(bd) bd.classList.remove('show');
+  // Reset active tab to canvas/view in current mode
+  const m=S.mode;
+  const navRow=document.getElementById('mobNav-'+m);
+  if(navRow){
+    navRow.querySelectorAll('.mob-tab').forEach(t=>t.classList.remove('active'));
+    const canvasTab=navRow.querySelector('.mob-tab[data-p="canvas"],.mob-tab[data-p="convpreview"]');
+    if(canvasTab) canvasTab.classList.add('active');
   }
+}
+
+function updateMobNav(m){
+  const isMob=isMobile();
+  const nav=document.getElementById('mobileNav');
+  if(!nav) return;
+  nav.style.display=isMob?'flex':'none';
+  ['image','pdf','convert'].forEach(k=>{
+    const row=document.getElementById('mobNav-'+k);
+    if(row) row.style.display=(isMob&&m===k)?'flex':'none';
+  });
+  // Default active tab per mode
+  if(isMob){
+    if(m==='image'){
+      showMobPanel('canvas',document.querySelector('#mobNav-image .mob-tab[data-p="canvas"]'),'image');
+    } else if(m==='pdf'){
+      showMobPanel('canvas',document.querySelector('#mobNav-pdf .mob-tab[data-p="canvas"]'),'pdf');
+    } else if(m==='convert'){
+      showMobPanel('convopts',document.querySelector('#mobNav-convert .mob-tab[data-p="convopts"]'),'convert');
+    }
+  }
+}
+
+function isMobile(){ return window.innerWidth<=700||( window.innerHeight<600&&window.innerWidth<window.innerHeight)||window.matchMedia('(max-width:700px)').matches; }
+
+function checkMobile(){
+  updateMobNav(S.mode);
 }
 
 /* =====================================================================
@@ -2502,5 +2744,6 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 </body>
 </html>
+
 
 
